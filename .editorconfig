@@ -66,7 +66,7 @@ dotnet_style_parentheses_in_other_operators = never_if_unnecessary:suggestion
 
 # .NET code style settings - Expression-level preferences
 # https://docs.microsoft.com/en-us/visualstudio/ide/editorconfig-language-conventions?view=vs-2019#expression-level-preferences
-dotnet_style_object_initializer = true:error
+dotnet_style_object_initializer = true:suggestion
 dotnet_style_collection_initializer = true:error
 dotnet_style_explicit_tuple_names = true:warning
 dotnet_style_prefer_inferred_tuple_names = true:suggestion
