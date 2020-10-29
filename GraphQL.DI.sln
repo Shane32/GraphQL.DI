@@ -8,7 +8,12 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution items", "Solution items", "{B194B3FB-53C8-4C5D-ABC3-EAB6A52C674D}"
 	ProjectSection(SolutionItems) = preProject
 		.editorconfig = .editorconfig
+		.gitignore = .gitignore
 		Directory.Build.props = Directory.Build.props
+		LICENSE = LICENSE
+		logo.64x64.png = logo.64x64.png
+		logo.jpg = logo.jpg
+		README.md = README.md
 	EndProjectSection
 EndProject
 Global
