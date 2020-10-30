@@ -2,6 +2,9 @@
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
+    <Description>
+      An extension to the graphql-dotnet library to allow easy creation of GraphQL endpoints in a style similar to ASP.Net Core controllers
+    </Description>
   </PropertyGroup>
 
   <ItemGroup>
