@@ -1,1 +1,1 @@
-# GraphQL.MVC
+# GraphQL.DI
