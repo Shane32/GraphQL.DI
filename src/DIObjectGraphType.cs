@@ -44,7 +44,7 @@ namespace GraphQL.DI
 
         //grab some methods via reflection for us to use later
         private static readonly MethodInfo _getRequiredServiceMethod = typeof(ServiceProviderServiceExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(x => x.Name == nameof(ServiceProviderServiceExtensions.GetRequiredService) && !x.IsGenericMethod);
-        private static readonly MethodInfo _asMethod = typeof(ResolveFieldContextExtensions).GetMethod(nameof(ResolveFieldContextExtensions.As), BindingFlags.Static | BindingFlags.Public);
+        private static readonly MethodInfo _asMethod = typeof(ResolveFieldContextExtensions).GetMethods(BindingFlags.Static | BindingFlags.Public).Single(x => x.Name == nameof(ResolveFieldContextExtensions.As) && x.GetParameters().Length == 1 && x.GetParameters()[0].ParameterType == typeof(IResolveFieldContext));
         private static readonly MethodInfo _getArgumentMethod = typeof(ResolveFieldContextExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(x => x.Name == nameof(ResolveFieldContextExtensions.GetArgument) && x.IsGenericMethod);
         private static readonly PropertyInfo _sourceProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.Source), BindingFlags.Instance | BindingFlags.Public);
         private static readonly PropertyInfo _requestServicesProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.RequestServices), BindingFlags.Instance | BindingFlags.Public);
@@ -65,7 +65,7 @@ namespace GraphQL.DI
 
         protected virtual IEnumerable<MethodInfo> GetMethodsToProcess()
         {
-            return typeof(TDIGraph).GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static | BindingFlags.DeclaredOnly);
+            return typeof(TDIGraph).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
         }
 
         protected virtual DIFieldType ProcessMethod(MethodInfo method)
@@ -216,7 +216,11 @@ namespace GraphQL.DI
         protected virtual Expression GetServiceExpression(ParameterExpression resolveFieldContextParameter, Type serviceType)
         {
             //returns: (serviceType)(context.RequestServices.GetRequiredService(serviceType))
-            return Expression.Convert(Expression.Call(_getRequiredServiceMethod, GetServiceProviderExpression(resolveFieldContextParameter), Expression.Constant(serviceType)), serviceType);
+            var serviceProvider = GetServiceProviderExpression(resolveFieldContextParameter);
+            var type = Expression.Constant(serviceType ?? throw new ArgumentNullException(nameof(serviceType)));
+            var getService = Expression.Call(_getRequiredServiceMethod, serviceProvider, type);
+            var cast = Expression.Convert(getService, serviceType);
+            return cast;
         }
 
         private ConcurrentDictionary<Type, ConstructorInfo> _funcFieldResolverConstructors = new ConcurrentDictionary<Type, ConstructorInfo>();
