@@ -10,13 +10,26 @@ using System.Threading.Tasks;
 using GraphQL.MicrosoftDI;
 using GraphQL.Resolvers;
 using GraphQL.Types;
+using GraphQL.Utilities;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace GraphQL.DI
 {
+    /// <summary>
+    /// Wraps a <see cref="DIObjectGraphBase"/> graph type for use with GraphQL. This class should be registered as a singleton
+    /// within your dependency injection provider.
+    /// </summary>
     public class DIObjectGraphType<TDIGraph> : DIObjectGraphType<TDIGraph, object> where TDIGraph : DIObjectGraphBase<object> { }
+    /// <summary>
+    /// Wraps a <see cref="DIObjectGraphBase{TSource}"/> graph type for use with GraphQL. This class should be registered as a singleton
+    /// within your dependency injection provider.
+    /// </summary>
     public class DIObjectGraphType<TDIGraph, TSource> : ObjectGraphType<TSource> where TDIGraph : DIObjectGraphBase<TSource>
     {
+        /// <summary>
+        /// Initializes a new instance, configuring the <see cref="GraphType.Name"/>, <see cref="GraphType.Description"/>,
+        /// <see cref="GraphType.DeprecationReason"/> and <see cref="MetadataProvider.Metadata"/> properties.
+        /// </summary>
         public DIObjectGraphType()
         {
             var classType = typeof(TDIGraph);
@@ -56,15 +69,25 @@ namespace GraphQL.DI
         private static readonly PropertyInfo _requestServicesProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.RequestServices), BindingFlags.Instance | BindingFlags.Public);
         private static readonly PropertyInfo _cancellationTokenProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.CancellationToken), BindingFlags.Public | BindingFlags.Instance);
 
+        /// <summary>
+        /// Gets or sets whether fields added to this graph type will default to running concurrently.
+        /// </summary>
         protected bool DefaultConcurrent { get; set; } = false;
+        /// <summary>
+        /// Gets or sets whether concurrent fields added to this graph type will default to running in a dedicated service scope.
+        /// </summary>
         protected bool DefaultCreateScope { get; set; } = false;
 
+        /// <summary>
+        /// Returns a list of <see cref="DIFieldType"/> instances representing the fields ready to be
+        /// added to the graph type.
+        /// </summary>
         protected virtual List<DIFieldType> CreateFieldTypeList()
         {
             //scan for public members
             var methods = GetMethodsToProcess();
             var fieldTypeList = new List<DIFieldType>(methods.Count());
-            foreach (var method in methods.Where(x => !x.ContainsGenericParameters)) {
+            foreach (var method in methods) {
                 var fieldType = ProcessMethod(method);
                 if (fieldType != null)
                     fieldTypeList.Add(fieldType);
@@ -72,12 +95,20 @@ namespace GraphQL.DI
             return fieldTypeList;
         }
 
+        /// <summary>
+        /// Returns a list of methods (<see cref="MethodInfo"/> instances) on the <typeparamref name="TDIGraph"/> class to be
+        /// converted into field definitions.
+        /// </summary>
         protected virtual IEnumerable<MethodInfo> GetMethodsToProcess()
         {
-            return typeof(TDIGraph).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
+            return typeof(TDIGraph).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(x => !x.ContainsGenericParameters);
         }
 
-        protected virtual DIFieldType ProcessMethod(MethodInfo method)
+
+        /// <summary>
+        /// Converts a specified method (<see cref="MethodInfo"/> instance) into a field definition.
+        /// </summary>
+        protected virtual DIFieldType? ProcessMethod(MethodInfo method)
         {
             //get the method name
             string methodName = method.Name;
@@ -177,10 +208,9 @@ namespace GraphQL.DI
                 }
                 //determine the graphtype of the field
                 var graphTypeAttribute = method.GetCustomAttribute<GraphTypeAttribute>();
-                Type graphType = graphTypeAttribute?.Type;
-                IGraphType graphTypeResolved = graphTypeAttribute?.ResolvedType;
+                Type? graphType = graphTypeAttribute?.Type;
                 //infer the graphtype if it is not specified
-                if (graphType == null && graphTypeResolved == null) {
+                if (graphType == null) {
                     if (method.ReturnType.IsConstructedGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)) {
                         graphType = InferOutputGraphType(method.ReturnType.GetGenericArguments()[0], isRequired);
                     } else {
@@ -188,13 +218,12 @@ namespace GraphQL.DI
                     }
                 }
                 //load the description
-                string description = method.GetCustomAttribute<DescriptionAttribute>()?.Description;
+                string? description = method.GetCustomAttribute<DescriptionAttribute>()?.Description;
                 //load the deprecation reason
-                string obsoleteDescription = method.GetCustomAttribute<ObsoleteAttribute>()?.Message;
+                string? obsoleteDescription = method.GetCustomAttribute<ObsoleteAttribute>()?.Message;
                 //create the field
                 var fieldType = new DIFieldType() {
                     Type = graphType,
-                    ResolvedType = graphTypeResolved,
                     Name = methodName,
                     Arguments = new QueryArguments(queryArguments.ToArray()),
                     Resolver = resolver,
@@ -211,27 +240,48 @@ namespace GraphQL.DI
 
         }
 
+        /// <summary>
+        /// Returns a GraphQL input type for a specified CLR type
+        /// </summary>
         protected virtual Type InferInputGraphType(Type type, bool isRequired)
         {
             return type.GetGraphTypeFromType(!isRequired, TypeMappingMode.InputType);
         }
 
+        /// <summary>
+        /// Returns a GraphQL output type for a specified CLR type
+        /// </summary>
         protected virtual Type InferOutputGraphType(Type type, bool isRequired)
         {
             return type.GetGraphTypeFromType(!isRequired, TypeMappingMode.OutputType);
         }
 
+        /// <summary>
+        /// Returns an expression that gets/creates an instance of <typeparamref name="TDIGraph"/> from a <see cref="IResolveFieldContext"/>.
+        /// Defaults to the following:
+        /// <code>context =&gt; context.RequestServices.GetRequiredService&lt;TDIGraph&gt;();</code>
+        /// </summary>
         protected virtual Expression GetInstanceExpression(ParameterExpression resolveFieldContextParameter)
         {
             return GetServiceExpression(resolveFieldContextParameter, typeof(TDIGraph));
         }
 
+        /// <summary>
+        /// Returns an expression that returns an <see cref="IServiceProvider"/> from a <see cref="IResolveFieldContext"/>.
+        /// Defaults to the following:
+        /// <code>context =&gt; context.RequestServices</code>.
+        /// </summary>
         protected virtual Expression GetServiceProviderExpression(ParameterExpression resolveFieldContextParameter)
         {
             //returns: context.RequestServices
             return Expression.Property(resolveFieldContextParameter, _requestServicesProperty);
         }
 
+        /// <summary>
+        /// Returns an expression that gets/creates an instance of the specified type from a <see cref="IResolveFieldContext"/>.
+        /// Defaults to the following:
+        /// <code>context =&gt; context.RequestServices.GetRequiredService&lt;T&gt;();</code>
+        /// </summary>
         protected virtual Expression GetServiceExpression(ParameterExpression resolveFieldContextParameter, Type serviceType)
         {
             //returns: (serviceType)(context.RequestServices.GetRequiredService(serviceType))
@@ -242,7 +292,10 @@ namespace GraphQL.DI
             return cast;
         }
 
-        private ConcurrentDictionary<Type, ConstructorInfo> _funcFieldResolverConstructors = new ConcurrentDictionary<Type, ConstructorInfo>();
+        private readonly ConcurrentDictionary<Type, ConstructorInfo> _funcFieldResolverConstructors = new ConcurrentDictionary<Type, ConstructorInfo>();
+        /// <summary>
+        /// Returns a field resolver for a specified delegate expression. Does not create a dedicated service scope for the delegate.
+        /// </summary>
         protected virtual IFieldResolver CreateUnscopedResolver(Expression resolveExpression, ParameterExpression resolveFieldContextParameter)
         {
             var constructorInfo = _funcFieldResolverConstructors.GetOrAdd(resolveExpression.Type, t => typeof(FuncFieldResolver<>).MakeGenericType(t).GetConstructors().Single());
@@ -250,8 +303,11 @@ namespace GraphQL.DI
             return (IFieldResolver)constructorInfo.Invoke(new[] { lambda });
         }
 
-        private ConcurrentDictionary<Type, ConstructorInfo> _scopedFieldResolverConstructors = new ConcurrentDictionary<Type, ConstructorInfo>();
-        private ConcurrentDictionary<Type, ConstructorInfo> _scopedAsyncFieldResolverConstructors = new ConcurrentDictionary<Type, ConstructorInfo>();
+        private readonly ConcurrentDictionary<Type, ConstructorInfo> _scopedFieldResolverConstructors = new ConcurrentDictionary<Type, ConstructorInfo>();
+        private readonly ConcurrentDictionary<Type, ConstructorInfo> _scopedAsyncFieldResolverConstructors = new ConcurrentDictionary<Type, ConstructorInfo>();
+        /// <summary>
+        /// Returns a field resolver for a specified delegate expression. The field resolver creates a dedicated service scope for the delegate.
+        /// </summary>
         protected virtual IFieldResolver CreateScopedResolver(Expression resolveExpression, ParameterExpression resolveFieldContextParameter)
         {
             ConstructorInfo constructorInfo;
@@ -274,7 +330,13 @@ namespace GraphQL.DI
             throw new ArgumentOutOfRangeException(nameof(t), "Type does not inherit from Task<>.");
         }
 
-        protected virtual QueryArgument ProcessParameter(MethodInfo method, ParameterInfo param, ParameterExpression resolveFieldContextParameter, out bool usesServices, out Expression expr)
+        /// <summary>
+        /// Processes a parameter of a method, returning an expression based upon <see cref="IResolveFieldContext"/>, and
+        /// optionally returns a query argument to be added to the field. <paramref name="usesServices"/> can be set to
+        /// <see langword="true"/> to indicate that the parameter uses the service provider and may need to run within
+        /// a scoped service provider for concurrent use.
+        /// </summary>
+        protected virtual QueryArgument? ProcessParameter(MethodInfo method, ParameterInfo param, ParameterExpression resolveFieldContextParameter, out bool usesServices, out Expression expr)
         {
             usesServices = false;
 
@@ -352,27 +414,23 @@ namespace GraphQL.DI
 
             //load the specified graph type
             var graphTypeAttribute = param.GetCustomAttribute<GraphTypeAttribute>();
-            Type graphType = graphTypeAttribute?.Type;
-            IGraphType graphTypeResolved = graphTypeAttribute?.ResolvedType;
+            Type? graphType = graphTypeAttribute?.Type;
             //if no specific graphtype set, pull from registered graph type list
-            if (graphType == null && graphTypeResolved == null) {
+            if (graphType == null) {
                 graphType = InferInputGraphType(param.ParameterType, isRequired);
             }
 
             //construct the query argument
-            QueryArgument argument;
-            if (graphType != null)
-                argument = new QueryArgument(graphType);
-            else
-                argument = new QueryArgument(graphTypeResolved);
+            var argument = new QueryArgument(graphType) {
+                Name = nameAttribute?.Name ?? param.Name,
+                Description = param.GetCustomAttribute<DescriptionAttribute>()?.Description,
+            };
 
-            argument.Name = nameAttribute?.Name ?? param.Name;
-            argument.Description = param.GetCustomAttribute<DescriptionAttribute>()?.Description;
             foreach (var metaAttribute in param.GetCustomAttributes<MetadataAttribute>())
                 argument.Metadata.Add(metaAttribute.Key, metaAttribute.Value);
 
             //pull/create the default value
-            object defaultValue = null;
+            object? defaultValue = null;
             if (param.IsOptional) {
                 defaultValue = param.DefaultValue;
             } else if (param.ParameterType.IsValueType) {

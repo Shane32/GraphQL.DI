@@ -1,4 +1,5 @@
 using System;
+using GraphQL.Types;
 using GraphQL.Execution;
 using GraphQL.Language.AST;
 using GraphQL.Validation;
@@ -7,23 +8,43 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace GraphQL.DI
 {
-    //DIDocumentExecuter is designed to be registered as a singleton
+    /// <summary>
+    /// Processes an entire GraphQL request, given an input GraphQL request string. This
+    /// is intended to be called by user code to process a query. Uses a <see cref="DIExecutionStrategy"/>
+    /// implementation for <see cref="ISchema.Query"/> and <see cref="ISchema.Mutation"/>. Can be passed
+    /// a <see cref="IExecutionStrategy"/> implementation for <see cref="ISchema.Subscription"/>.
+    /// </summary>
     public class DIDocumentExecuter : DocumentExecuter
     {
+        /// <summary>
+        /// The instance of the execution strategy used for <see cref="ISchema.Query"/> and <see cref="ISchema.Mutation"/>.
+        /// </summary>
         protected IExecutionStrategy DIExecutionStrategy = DI.DIExecutionStrategy.Instance;
-        protected IExecutionStrategy SubscriptionExecutionStrategy = null;
+        /// <summary>
+        /// The instance of the execution strategy used for <see cref="ISchema.Subscription"/>.
+        /// </summary>
+        protected IExecutionStrategy? SubscriptionExecutionStrategy = null;
 
+        /// <summary>
+        /// Initializes a new instance without support for subscriptions.
+        /// </summary>
         public DIDocumentExecuter() : base()
         {
         }
 
-        public DIDocumentExecuter(IExecutionStrategy subscriptionExecutionStrategy) : base()
+        /// <summary>
+        /// Initializes a new instance with the specified <see cref="IExecutionStrategy"/> for <see cref="ISchema.Subscription"/>.
+        /// </summary>
+        public DIDocumentExecuter(IExecutionStrategy? subscriptionExecutionStrategy) : base()
         {
             SubscriptionExecutionStrategy = subscriptionExecutionStrategy;
         }
 
-        //pull IDocumentBuilder, IDocumentValidator, and IComplexityAnalyzer from DI if they have been registered
-        //if any of them have not been registered, use default implementations
+        /// <summary>
+        /// Initializes a new instance using the specified <see cref="IServiceProvider"/> to pull optional
+        /// references to <see cref="IDocumentBuilder"/>, <see cref="IDocumentValidator"/> and <see cref="IComplexityAnalyzer"/>.
+        /// Does not support subscriptions.
+        /// </summary>
         public DIDocumentExecuter(
             IServiceProvider serviceProvider) : base(
                 (serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider))).GetService<IDocumentBuilder>() ?? new GraphQLDocumentBuilder(),
@@ -32,13 +53,17 @@ namespace GraphQL.DI
         {
         }
 
-        //pull IDocumentBuilder, IDocumentValidator, and IComplexityAnalyzer from DI if they have been registered
-        //if any of them have not been registered, use default implementations
-        public DIDocumentExecuter(IServiceProvider serviceProvider, IExecutionStrategy subscriptionExecutionStrategy) : this(serviceProvider)
+        /// <summary>
+        /// Initializes a new instance using the specified <see cref="IServiceProvider"/> to pull optional
+        /// references to <see cref="IDocumentBuilder"/>, <see cref="IDocumentValidator"/> and <see cref="IComplexityAnalyzer"/>.
+        /// Uses the specified <see cref="IExecutionStrategy"/> for <see cref="ISchema.Subscription"/>.
+        /// </summary>
+        public DIDocumentExecuter(IServiceProvider serviceProvider, IExecutionStrategy? subscriptionExecutionStrategy) : this(serviceProvider)
         {
             SubscriptionExecutionStrategy = subscriptionExecutionStrategy;
         }
 
+        /// <inheritdoc/>
         protected override IExecutionStrategy SelectExecutionStrategy(ExecutionContext context)
         {
             switch (context.Operation.OperationType)
@@ -50,10 +75,10 @@ namespace GraphQL.DI
                     return DIExecutionStrategy;
 
                 case OperationType.Subscription:
-                    return SubscriptionExecutionStrategy;
+                    return SubscriptionExecutionStrategy ?? base.SelectExecutionStrategy(context);
 
                 default:
-                    throw new InvalidOperationException($"Unexpected OperationType {context.Operation.OperationType}");
+                    return base.SelectExecutionStrategy(context);
             }
         }
 
