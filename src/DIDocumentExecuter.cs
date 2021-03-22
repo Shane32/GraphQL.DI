@@ -3,31 +3,40 @@ using GraphQL.Execution;
 using GraphQL.Language.AST;
 using GraphQL.Validation;
 using GraphQL.Validation.Complexity;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace GraphQL.DI
 {
-    //DIDocumentExecuter and DIExecutionStrategy are designed to be registered as scoped service providers
+    //DIDocumentExecuter is designed to be registered as a singleton
     public class DIDocumentExecuter : DocumentExecuter
     {
-        protected DIExecutionStrategy DIExecutionStrategy;
-        protected SubscriptionExecutionStrategy SubscriptionExecutionStrategy;
+        protected IExecutionStrategy DIExecutionStrategy = DI.DIExecutionStrategy.Instance;
+        protected IExecutionStrategy SubscriptionExecutionStrategy = null;
 
         public DIDocumentExecuter() : base()
         {
-            DIExecutionStrategy = new DIExecutionStrategy();
-            SubscriptionExecutionStrategy = new SubscriptionExecutionStrategy();
         }
 
-        //pull IDocumentBuilder, IDocumentValidator, IComplexityAnalyzer, DIExecutionStrategy, and SubscriptionExecutionStrategy from DI if they have been registered
+        public DIDocumentExecuter(IExecutionStrategy subscriptionExecutionStrategy) : base()
+        {
+            SubscriptionExecutionStrategy = subscriptionExecutionStrategy;
+        }
+
+        //pull IDocumentBuilder, IDocumentValidator, and IComplexityAnalyzer from DI if they have been registered
         //if any of them have not been registered, use default implementations
         public DIDocumentExecuter(
             IServiceProvider serviceProvider) : base(
-                (IDocumentBuilder)(serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider))).GetService(typeof(IDocumentBuilder)) ?? new GraphQLDocumentBuilder(),
-                (IDocumentValidator)serviceProvider.GetService(typeof(IDocumentValidator)) ?? new DocumentValidator(),
-                (IComplexityAnalyzer)serviceProvider.GetService(typeof(IComplexityAnalyzer)) ?? new ComplexityAnalyzer())
+                (serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider))).GetService<IDocumentBuilder>() ?? new GraphQLDocumentBuilder(),
+                serviceProvider.GetService<IDocumentValidator>() ?? new DocumentValidator(),
+                serviceProvider.GetService<IComplexityAnalyzer>() ?? new ComplexityAnalyzer())
         {
-            DIExecutionStrategy = (DIExecutionStrategy)serviceProvider.GetService(typeof(DIExecutionStrategy)) ?? new DIExecutionStrategy();
-            SubscriptionExecutionStrategy = (SubscriptionExecutionStrategy)serviceProvider.GetService(typeof(SubscriptionExecutionStrategy)) ?? new SubscriptionExecutionStrategy();
+        }
+
+        //pull IDocumentBuilder, IDocumentValidator, and IComplexityAnalyzer from DI if they have been registered
+        //if any of them have not been registered, use default implementations
+        public DIDocumentExecuter(IServiceProvider serviceProvider, IExecutionStrategy subscriptionExecutionStrategy) : this(serviceProvider)
+        {
+            SubscriptionExecutionStrategy = subscriptionExecutionStrategy;
         }
 
         protected override IExecutionStrategy SelectExecutionStrategy(ExecutionContext context)

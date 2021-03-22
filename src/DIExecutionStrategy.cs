@@ -9,6 +9,8 @@ namespace GraphQL.DI
 {
     public class DIExecutionStrategy : ExecutionStrategy
     {
+        internal static DIExecutionStrategy Instance = new DIExecutionStrategy();
+
         protected override async Task ExecuteNodeTreeAsync(ExecutionContext context, ObjectExecutionNode rootNode)
         {
             Func<Task, ExecutionNode, Task<ExecutionNode>> taskFunc = async (task, node) => { await task; return node; };

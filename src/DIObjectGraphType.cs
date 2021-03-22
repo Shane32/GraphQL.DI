@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using GraphQL.MicrosoftDI;
 using GraphQL.Resolvers;
 using GraphQL.Types;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,12 +43,12 @@ namespace GraphQL.DI
         }
 
         //grab some methods via reflection for us to use later
-        private static readonly MethodInfo getRequiredServiceMethod = typeof(ServiceProviderServiceExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(x => x.Name == nameof(ServiceProviderServiceExtensions.GetRequiredService) && !x.IsGenericMethod);
-        private static readonly MethodInfo asMethod = typeof(ResolveFieldContextExtensions).GetMethod(nameof(ResolveFieldContextExtensions.As), BindingFlags.Static | BindingFlags.Public);
-        private static readonly MethodInfo getArgumentMethod = typeof(GraphQL.ResolveFieldContextExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(x => x.Name == nameof(GraphQL.ResolveFieldContextExtensions.GetArgument) && x.IsGenericMethod);
-        private static readonly PropertyInfo sourceProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.Source), BindingFlags.Instance | BindingFlags.Public);
-        private static readonly PropertyInfo requestServicesProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.RequestServices), BindingFlags.Instance | BindingFlags.Public);
-        private static readonly PropertyInfo cancellationTokenProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.CancellationToken), BindingFlags.Public | BindingFlags.Instance);
+        private static readonly MethodInfo _getRequiredServiceMethod = typeof(ServiceProviderServiceExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(x => x.Name == nameof(ServiceProviderServiceExtensions.GetRequiredService) && !x.IsGenericMethod);
+        private static readonly MethodInfo _asMethod = typeof(ResolveFieldContextExtensions).GetMethod(nameof(ResolveFieldContextExtensions.As), BindingFlags.Static | BindingFlags.Public);
+        private static readonly MethodInfo _getArgumentMethod = typeof(ResolveFieldContextExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(x => x.Name == nameof(ResolveFieldContextExtensions.GetArgument) && x.IsGenericMethod);
+        private static readonly PropertyInfo _sourceProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.Source), BindingFlags.Instance | BindingFlags.Public);
+        private static readonly PropertyInfo _requestServicesProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.RequestServices), BindingFlags.Instance | BindingFlags.Public);
+        private static readonly PropertyInfo _cancellationTokenProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.CancellationToken), BindingFlags.Public | BindingFlags.Instance);
 
         protected virtual List<DIFieldType> CreateFieldTypeList()
         {
@@ -101,33 +103,31 @@ namespace GraphQL.DI
                     //add the constructed expression to the list to be used for creating the resolve function
                     executeParams.Add(expr);
                 }
-                //define the resolve function
-                Func<IResolveFieldContext, object> resolverFunc;
+                //check if this is an async method
+                var isAsync = typeof(Task).IsAssignableFrom(method.ReturnType);
+                //define the resolve expression
+                Expression exprResolve;
                 if (method.IsStatic) {
                     //for static methods, no need to pull an instance of the class from the service provider
                     //just call the static method with the executeParams as the parameters
-                    Expression exprResolve = Expression.Convert(Expression.Call(method, executeParams.ToArray()), typeof(object));
-                    //compile the function and save it as our resolve function
-                    resolverFunc = Expression.Lambda<Func<IResolveFieldContext, object>>(exprResolve, resolveFieldContextParameter).Compile();
+                    exprResolve = Expression.Call(method, executeParams.ToArray());
                 } else {
                     //for instance methods, pull an instance of the class from the service provider
                     Expression exprGetService = GetInstanceExpression(resolveFieldContextParameter);
                     //then, call the method with the executeParams as the parameters
-                    Expression exprResolve = Expression.Convert(Expression.Call(exprGetService, method, executeParams.ToArray()), typeof(object));
-                    //compile the function and save it as our resolve function
-                    resolverFunc = Expression.Lambda<Func<IResolveFieldContext, object>>(exprResolve, resolveFieldContextParameter).Compile();
+                    exprResolve = Expression.Call(exprGetService, method, executeParams.ToArray());
                 }
 
                 //determine if this should run concurrently with other resolvers
                 //if it's an async static method that does not pull from services, then it's safe to run concurrently
-                if (typeof(Task).IsAssignableFrom(method.ReturnType) && method.IsStatic && !anyParamsUseServices) {
+                if (isAsync && method.IsStatic && !anyParamsUseServices) {
                     //mark this field as concurrent, so the execution strategy will run it asynchronously
                     concurrent = true;
                     //set the resolver to run the compiled resolve function
-                    resolver = CreateUnscopedResolver(resolverFunc);
+                    resolver = CreateUnscopedResolver(exprResolve, resolveFieldContextParameter);
                 }
                 //for methods that return a Task and are marked with the Concurrent attribute,
-                else if (typeof(Task).IsAssignableFrom(method.ReturnType) && method.GetCustomAttributes<ConcurrentAttribute>().Any()) {
+                else if (isAsync && method.GetCustomAttributes<ConcurrentAttribute>().Any()) {
                     //mark this field as concurrent, so the execution strategy will run it asynchronously
                     concurrent = true;
                     //determine if a new DI scope is required
@@ -135,16 +135,16 @@ namespace GraphQL.DI
                         //the resolve function needs to create a scope,
                         //  then run the compiled resolve function (which creates an instance of the class),
                         //  then release the scope once the task has been awaited
-                        resolver = CreateScopedResolver(resolverFunc);
+                        resolver = CreateScopedResolver(exprResolve, resolveFieldContextParameter);
                     } else {
                         //just run the compiled resolve function, and count on the method to handle multithreading issues
-                        resolver = CreateUnscopedResolver(resolverFunc);
+                        resolver = CreateUnscopedResolver(exprResolve, resolveFieldContextParameter);
                     }
                 }
                 //for non-async methods, and instance methods that are not marked with the Concurrent attribute
                 else {
                     //just run the compiled resolve function
-                    resolver = CreateUnscopedResolver(resolverFunc);
+                    resolver = CreateUnscopedResolver(exprResolve, resolveFieldContextParameter);
                 }
             }
 
@@ -172,13 +172,8 @@ namespace GraphQL.DI
                 string description = method.GetCustomAttribute<DescriptionAttribute>()?.Description;
                 //load the deprecation reason
                 string obsoleteDescription = method.GetCustomAttribute<ObsoleteAttribute>()?.Message;
-                //load the metadata
-                var metadata = new Dictionary<string, object>();
-                foreach (var metaAttribute in method.GetCustomAttributes<MetadataAttribute>())
-                    metadata.Add(metaAttribute.Key, metaAttribute.Value);
-
                 //create the field
-                return new DIFieldType() {
+                var fieldType = new DIFieldType() {
                     Type = graphType,
                     ResolvedType = graphTypeResolved,
                     Name = methodName,
@@ -187,20 +182,24 @@ namespace GraphQL.DI
                     Description = description,
                     Concurrent = concurrent,
                     DeprecationReason = obsoleteDescription,
-                    Metadata = metadata,
                 };
+                //load the metadata
+                foreach (var metaAttribute in method.GetCustomAttributes<MetadataAttribute>())
+                    fieldType.WithMetadata(metaAttribute.Key, metaAttribute.Value);
+                //return the field
+                return fieldType;
             }
 
         }
 
         protected virtual Type InferInputGraphType(Type type, bool isRequired)
         {
-            return type.GetGraphTypeFromType(!isRequired);
+            return type.GetGraphTypeFromType(!isRequired, TypeMappingMode.InputType);
         }
 
         protected virtual Type InferOutputGraphType(Type type, bool isRequired)
         {
-            return type.GetGraphTypeFromType(!isRequired);
+            return type.GetGraphTypeFromType(!isRequired, TypeMappingMode.OutputType);
         }
 
         protected virtual Expression GetInstanceExpression(ParameterExpression resolveFieldContextParameter)
@@ -211,35 +210,45 @@ namespace GraphQL.DI
         protected virtual Expression GetServiceProviderExpression(ParameterExpression resolveFieldContextParameter)
         {
             //returns: context.RequestServices
-            return Expression.Property(resolveFieldContextParameter, requestServicesProperty);
+            return Expression.Property(resolveFieldContextParameter, _requestServicesProperty);
         }
 
         protected virtual Expression GetServiceExpression(ParameterExpression resolveFieldContextParameter, Type serviceType)
         {
             //returns: (serviceType)(context.RequestServices.GetRequiredService(serviceType))
-            return Expression.Convert(Expression.Call(getRequiredServiceMethod, GetServiceProviderExpression(resolveFieldContextParameter), Expression.Constant(serviceType)), serviceType);
+            return Expression.Convert(Expression.Call(_getRequiredServiceMethod, GetServiceProviderExpression(resolveFieldContextParameter), Expression.Constant(serviceType)), serviceType);
         }
 
-        protected virtual IFieldResolver CreateUnscopedResolver(Func<IResolveFieldContext, object> resolveFunc)
+        private ConcurrentDictionary<Type, ConstructorInfo> _funcFieldResolverConstructors = new ConcurrentDictionary<Type, ConstructorInfo>();
+        protected virtual IFieldResolver CreateUnscopedResolver(Expression resolveExpression, ParameterExpression resolveFieldContextParameter)
         {
-            return new FuncFieldResolver<object>(resolveFunc);
+            var constructorInfo = _funcFieldResolverConstructors.GetOrAdd(resolveExpression.Type, t => typeof(FuncFieldResolver<>).MakeGenericType(t).GetConstructors().Single());
+            var lambda = Expression.Lambda(resolveExpression, resolveFieldContextParameter).Compile();
+            return (IFieldResolver)constructorInfo.Invoke(new[] { lambda });
         }
 
-        protected virtual IFieldResolver CreateScopedResolver(Func<IResolveFieldContext, object> resolverFunc)
+        private ConcurrentDictionary<Type, ConstructorInfo> _scopedFieldResolverConstructors = new ConcurrentDictionary<Type, ConstructorInfo>();
+        private ConcurrentDictionary<Type, ConstructorInfo> _scopedAsyncFieldResolverConstructors = new ConcurrentDictionary<Type, ConstructorInfo>();
+        protected virtual IFieldResolver CreateScopedResolver(Expression resolveExpression, ParameterExpression resolveFieldContextParameter)
         {
-            return new AsyncFieldResolver<object>(async (context) => {
-                var serviceProvider = context.RequestServices ?? throw new InvalidOperationException("No service provider defined in this context");
-                using (var newScope = serviceProvider.CreateScope()) {
-                    context = new ContextWrapper(context, newScope.ServiceProvider);
-                    //run the compiled resolve function, which should return a Task<>
-                    var ret = resolverFunc(context);
-                    if (ret is Task task) {
-                        await task.ConfigureAwait(false);
-                        return task.GetResult();
-                    }
-                    return ret; //cannot occur, since the return type has already been determined to be a Task<>
-                }
-            });
+            ConstructorInfo constructorInfo;
+            if (typeof(Task).IsAssignableFrom(resolveExpression.Type)) {
+                constructorInfo = _scopedAsyncFieldResolverConstructors.GetOrAdd(GetTaskType(resolveExpression.Type), t => typeof(ScopedAsyncFieldResolver<>).MakeGenericType(t).GetConstructors().Single());
+            } else {
+                constructorInfo = _scopedFieldResolverConstructors.GetOrAdd(resolveExpression.Type, t => typeof(ScopedFieldResolver<>).MakeGenericType(t).GetConstructors().Single());
+            }
+            var lambda = Expression.Lambda(resolveExpression, resolveFieldContextParameter).Compile();
+            return (IFieldResolver)constructorInfo.Invoke(new[] { lambda });
+        }
+
+        private static Type GetTaskType(Type t)
+        {
+            while (t != null) {
+                if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(Task<>))
+                    return t.GenericTypeArguments[0];
+                t = t.BaseType;
+            }
+            throw new ArgumentOutOfRangeException(nameof(t), "Type does not inherit from Task<>.");
         }
 
         protected virtual QueryArgument ProcessParameter(MethodInfo method, ParameterInfo param, ParameterExpression resolveFieldContextParameter, out bool usesServices, out Expression expr)
@@ -255,7 +264,7 @@ namespace GraphQL.DI
             }
             if (param.ParameterType == typeof(CancellationToken)) {
                 //return the cancellation token from the IResolveFieldContext parameter
-                expr = Expression.MakeMemberAccess(resolveFieldContextParameter, cancellationTokenProperty);
+                expr = Expression.MakeMemberAccess(resolveFieldContextParameter, _cancellationTokenProperty);
                 //and do not add it as a QueryArgument
                 return null;
             }
@@ -265,7 +274,7 @@ namespace GraphQL.DI
                 if (!genericType.IsAssignableFrom(typeof(TSource)))
                     throw new InvalidOperationException($"Invalid {nameof(IResolveFieldContext)}<> type for method {method.Name}");
                 //convert the IResolveFieldContext to the specified ResolveFieldContext<>
-                var asMethodTyped = asMethod.MakeGenericMethod(genericType);
+                var asMethodTyped = _asMethod.MakeGenericMethod(genericType);
                 //e.g. Func<IResolveFieldContext, IResolveFieldContext<MyClass>> = (context) => context.As<MyClass>();
                 expr = Expression.Call(asMethodTyped, resolveFieldContextParameter);
                 //and do not add it as a QueryArgument
@@ -277,7 +286,7 @@ namespace GraphQL.DI
                     throw new InvalidOperationException($"Invalid {nameof(IResolveFieldContext)}<> type for method {method.Name}");
                 //retrieve the value and cast it to the specified type
                 //e.g. Func<IResolveFieldContext, TSource> = (context) => (TSource)context.Source;
-                expr = Expression.Convert(Expression.Property(resolveFieldContextParameter, sourceProperty), param.ParameterType);
+                expr = Expression.Convert(Expression.Property(resolveFieldContextParameter, _sourceProperty), param.ParameterType);
                 //and do not add it as a QueryArgument
                 return null;
             }
@@ -348,7 +357,7 @@ namespace GraphQL.DI
             }
 
             //construct a call to ResolveFieldContextExtensions.GetArgument, passing in the appropriate default value
-            var getArgumentMethodTyped = getArgumentMethod.MakeGenericMethod(param.ParameterType);
+            var getArgumentMethodTyped = _getArgumentMethod.MakeGenericMethod(param.ParameterType);
             //e.g. Func<IResolveFieldContext, int> = (context) => ResolveFieldContextExtensions.GetArgument<int>(context, argument.Name, defaultValue);
             expr = Expression.Call(getArgumentMethodTyped, resolveFieldContextParameter, Expression.Constant(argument.Name), Expression.Constant(defaultValue, param.ParameterType));
 
