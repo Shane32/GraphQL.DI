@@ -7,6 +7,7 @@ namespace GraphQL.DI
     {
         public ConcurrentAttribute() { }
         public ConcurrentAttribute(bool createNewScope) { CreateNewScope = createNewScope; }
-        public bool CreateNewScope { get; }
+        public bool Concurrent { get; set; } = true;
+        public bool CreateNewScope { get; set; } = false;
     }
 }

@@ -34,6 +34,12 @@ namespace GraphQL.DI
             //pull metadata
             foreach (var metadataAttribute in classType.GetCustomAttributes<MetadataAttribute>())
                 Metadata.Add(metadataAttribute.Key, metadataAttribute.Value);
+            //check if there is a default concurrency setting
+            var concurrentAttribute = classType.GetCustomAttribute<ConcurrentAttribute>();
+            if (concurrentAttribute != null) {
+                DefaultConcurrent = true;
+                DefaultCreateScope = concurrentAttribute.CreateNewScope;
+            }
 
             //give inherited classes a chance to mutate the field type list before they are added to the graph type list
             var fieldTypes = CreateFieldTypeList();
@@ -49,6 +55,9 @@ namespace GraphQL.DI
         private static readonly PropertyInfo _sourceProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.Source), BindingFlags.Instance | BindingFlags.Public);
         private static readonly PropertyInfo _requestServicesProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.RequestServices), BindingFlags.Instance | BindingFlags.Public);
         private static readonly PropertyInfo _cancellationTokenProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.CancellationToken), BindingFlags.Public | BindingFlags.Instance);
+
+        protected bool DefaultConcurrent { get; set; } = false;
+        protected bool DefaultCreateScope { get; set; } = false;
 
         protected virtual List<DIFieldType> CreateFieldTypeList()
         {
@@ -126,25 +135,35 @@ namespace GraphQL.DI
                     //set the resolver to run the compiled resolve function
                     resolver = CreateUnscopedResolver(exprResolve, resolveFieldContextParameter);
                 }
-                //for methods that return a Task and are marked with the Concurrent attribute,
-                else if (isAsync && method.GetCustomAttributes<ConcurrentAttribute>().Any()) {
-                    //mark this field as concurrent, so the execution strategy will run it asynchronously
-                    concurrent = true;
-                    //determine if a new DI scope is required
-                    if (method.GetCustomAttributes<ConcurrentAttribute>().Any(x => x.CreateNewScope)) {
-                        //the resolve function needs to create a scope,
-                        //  then run the compiled resolve function (which creates an instance of the class),
-                        //  then release the scope once the task has been awaited
-                        resolver = CreateScopedResolver(exprResolve, resolveFieldContextParameter);
-                    } else {
-                        //just run the compiled resolve function, and count on the method to handle multithreading issues
+                else {
+                    var methodConcurrent = method.GetCustomAttribute<ConcurrentAttribute>();
+                    concurrent = DefaultConcurrent;
+                    var scoped = DefaultCreateScope;
+                    if (methodConcurrent != null) {
+                        concurrent = methodConcurrent.Concurrent;
+                        scoped = methodConcurrent.CreateNewScope;
+                    }
+                    //for methods that return a Task and are marked with the Concurrent attribute,
+                    if (isAsync && concurrent) {
+                        //mark this field as concurrent, so the execution strategy will run it asynchronously
+                        concurrent = true;
+                        //determine if a new DI scope is required
+                        if (scoped) {
+                            //the resolve function needs to create a scope,
+                            //  then run the compiled resolve function (which creates an instance of the class),
+                            //  then release the scope once the task has been awaited
+                            resolver = CreateScopedResolver(exprResolve, resolveFieldContextParameter);
+                        } else {
+                            //just run the compiled resolve function, and count on the method to handle multithreading issues
+                            resolver = CreateUnscopedResolver(exprResolve, resolveFieldContextParameter);
+                        }
+                    }
+                    //for non-async methods, and instance methods that are not marked with the Concurrent attribute
+                    else {
+                        concurrent = false;
+                        //just run the compiled resolve function
                         resolver = CreateUnscopedResolver(exprResolve, resolveFieldContextParameter);
                     }
-                }
-                //for non-async methods, and instance methods that are not marked with the Concurrent attribute
-                else {
-                    //just run the compiled resolve function
-                    resolver = CreateUnscopedResolver(exprResolve, resolveFieldContextParameter);
                 }
             }
 
