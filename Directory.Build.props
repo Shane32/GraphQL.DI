@@ -13,7 +13,7 @@
     <Deterministic>true</Deterministic>
     <!-- https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables -->
     <!-- https://github.com/clairernovotny/DeterministicBuilds -->
-    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">True</ContinuousIntegrationBuild>
+    <ContinuousIntegrationBuild Condition="'$(Configuration)' != 'Debug'">True</ContinuousIntegrationBuild>
     <DebugType>embedded</DebugType>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
