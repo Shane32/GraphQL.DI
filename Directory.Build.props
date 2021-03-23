@@ -20,7 +20,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" Condition="'$(IsPackable)' == 'true'"/>
-    <None Include="..\logo.64x64.png" Pack="true" PackagePath="\"/>
+    <None Include="..\..\logo.64x64.png" Pack="true" PackagePath="\" Condition="'$(IsPackable)' == 'true'"/>
   </ItemGroup>
 
 </Project>
