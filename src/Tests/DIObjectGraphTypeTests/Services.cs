@@ -1,15 +1,16 @@
 using System;
+using System.ComponentModel;
 using System.Threading.Tasks;
 using GraphQL.DI;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using GraphQL.Types;
 using Shouldly;
+using Xunit;
 
 namespace DIObjectGraphTypeTests
 {
-    [TestClass]
     public class Services : DIObjectGraphTypeTestBase
     {
-        [TestMethod]
+        [Fact]
         public void Service()
         {
             Configure<CService, object>();
@@ -23,7 +24,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1([FromServices] string arg) => arg;
         }
 
-        [TestMethod]
+        [Fact]
         public void ServiceMissingThrows()
         {
             Configure<CService, object>();
@@ -32,7 +33,7 @@ namespace DIObjectGraphTypeTests
             Verify(false);
         }
 
-        [TestMethod]
+        [Fact]
         public async Task ScopedService()
         {
             Configure<CScopedService, object>();

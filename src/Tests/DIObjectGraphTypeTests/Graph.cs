@@ -4,14 +4,13 @@ using System.ComponentModel;
 using System.Reflection;
 using GraphQL.DI;
 using Shouldly;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Xunit;
 
 namespace DIObjectGraphTypeTests
 {
-    [TestClass]
     public class Graph : DIObjectGraphTypeTestBase
     {
-        [TestMethod]
+        [Fact]
         public void GraphName()
         {
             Configure<CGraphName, object>().Name.ShouldBe("TestGraphName");
@@ -20,16 +19,16 @@ namespace DIObjectGraphTypeTests
         [Name("TestGraphName")]
         public class CGraphName : DIObjectGraphBase { }
 
-        [TestMethod]
+        [Fact]
         public void GraphDescription()
         {
             Configure<CGraphDescription, object>().Description.ShouldBe("TestGraphDescription");
         }
 
-        [System.ComponentModel.Description("TestGraphDescription")]
+        [Description("TestGraphDescription")]
         public class CGraphDescription : DIObjectGraphBase { }
 
-        [TestMethod]
+        [Fact]
         public void GraphObsolete()
         {
             Configure<CGraphObsolete, object>().DeprecationReason.ShouldBe("TestDeprecationReason");
@@ -38,7 +37,7 @@ namespace DIObjectGraphTypeTests
         [Obsolete("TestDeprecationReason")]
         public class CGraphObsolete : DIObjectGraphBase { }
 
-        [TestMethod]
+        [Fact]
         public void GraphMetadata()
         {
             Configure<CGraphMetadata, object>().GetMetadata<string>("test").ShouldBe("value");
@@ -47,7 +46,7 @@ namespace DIObjectGraphTypeTests
         [Metadata("test", "value")]
         public class CGraphMetadata : DIObjectGraphBase { }
 
-        [TestMethod]
+        [Fact]
         public void CanOverrideMembers()
         {
             var test = new CCanOverrideMembersGraphType();
