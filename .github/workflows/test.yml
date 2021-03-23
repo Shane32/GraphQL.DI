@@ -39,7 +39,7 @@ jobs:
       - name: Build solution [Debug]
         run: dotnet build --no-restore -p:NoWarn=CS1591
       - name: Test solution [Debug]
-        run: dotnet test --no-restore --no-build -p:CollectCoverage=true -p:CoverletOutputFormat=lcov -p:Include=[Shane32.GraphQL.DI]* -p:CoverletOutput=../../${{ matrix.os }}.lcov.info
+        run: dotnet test --no-restore --no-build -p:CollectCoverage=true -p:CoverletOutputFormat=lcov -p:CoverletOutput=../../${{ matrix.os }}.lcov.info
       # ==== code coverage reports (ubuntu-latest only) ====
       - name: Convert coverage report to clover & htmlsummary format
         if: ${{ matrix.os == 'ubuntu-latest' }}
