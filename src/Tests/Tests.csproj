@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GraphQL.DI\GraphQL.DI.csproj" />
+    <ProjectReference Include="..\GraphQL.DI\Shane32.GraphQL.DI.csproj" />
   </ItemGroup>
 
 </Project>
