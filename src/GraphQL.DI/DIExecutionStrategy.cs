@@ -7,8 +7,16 @@ using GraphQL.Execution;
 
 namespace GraphQL.DI
 {
+    /// <summary>
+    /// An <see cref="IExecutionStrategy"/> implementation for use with <see cref="DIFieldType"/> field types.
+    /// Will respect <see cref="DIFieldType.Concurrent"/> to execute nodes synchronously or concurrently.
+    /// Does not call <see cref="ExecutionStrategy.OnBeforeExecutionStepAwaitedAsync(ExecutionContext)"/>.
+    /// </summary>
     public class DIExecutionStrategy : ExecutionStrategy
     {
+        internal static DIExecutionStrategy Instance = new DIExecutionStrategy();
+
+        /// <inheritdoc/>
         protected override async Task ExecuteNodeTreeAsync(ExecutionContext context, ObjectExecutionNode rootNode)
         {
             Func<Task, ExecutionNode, Task<ExecutionNode>> taskFunc = async (task, node) => { await task; return node; };
@@ -18,7 +26,7 @@ namespace GraphQL.DI
             var asyncNodes = new Stack<ExecutionNode>(); //asynchronous nodes to be executed
             var waitingTasks = new List<Task<ExecutionNode>>(); //nodes currently executing
             var pendingNodes = new Queue<ExecutionNode>(); //IDelayLoadedResult nodes pending completion
-            Task waitingSyncTask = null;
+            Task? waitingSyncTask = null;
             int maxTasks = context.MaxParallelExecutionCount ?? int.MaxValue;
             if (maxTasks < 1)
                 throw new InvalidOperationException("Invalid maximum number of tasks");
@@ -84,18 +92,10 @@ namespace GraphQL.DI
 
                 //complete one or more asynchronously-executing tasks
                 if (waitingTasks.Count == 1) {
-                    await OnBeforeExecutionStepAwaitedAsync(context)
-                        .ConfigureAwait(false);
-
                     DICompleteNode(await waitingTasks[0]);
                     waitingTasks.Clear();
                     waitingSyncTask = null;
                 } else if (waitingTasks.Count > 0) {
-                    //wait for listeners (this really makes no sense, and
-                    //  is a really poor way of implementing an IDataLoader)
-                    await OnBeforeExecutionStepAwaitedAsync(context)
-                        .ConfigureAwait(false);
-
                     //wait for at least one task to complete
                     var completedTask = await Task.WhenAny(waitingTasks).ConfigureAwait(false);
                     //note: errors are not thrown here, but rather down at task.Result
@@ -125,12 +125,6 @@ namespace GraphQL.DI
                     while (pendingNodes.Count > 0) {
                         var pendingNode = pendingNodes.Dequeue();
                         var task = CompleteDataLoaderNodeAsync(context, pendingNode);
-                        if (!task.IsCompleted) {
-                            //wait for listeners (this really makes no sense, and
-                            //  is a really poor way of implementing an IDataLoader)
-                            await OnBeforeExecutionStepAwaitedAsync(context)
-                                .ConfigureAwait(false);
-                        }
                         await task.ConfigureAwait(false); //execute synchronously
                         DICompleteNode(pendingNode);
                     }
