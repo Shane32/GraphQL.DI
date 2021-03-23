@@ -34,12 +34,12 @@ jobs:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Install dependencies
         run: dotnet restore
-      - name: Build solution [Release]
-        run: dotnet build --no-restore -c Release -p:NoWarn=CS1591
+      #- name: Build solution [Release]
+      #  run: dotnet build --no-restore -c Release -p:NoWarn=CS1591
       - name: Build solution [Debug]
         run: dotnet build --no-restore -p:NoWarn=CS1591 -p:DebugType=pdbonly
       - name: Test solution [Debug]
-        run: dotnet test --no-restore -p:CollectCoverage=true -p:CoverletOutputFormat=lcov -p:CoverletOutput=../../${{ matrix.os }}.lcov.info
+        run: dotnet test --no-restore --no-build -p:CollectCoverage=true -p:CoverletOutputFormat=lcov -p:CoverletOutput=../../${{ matrix.os }}.lcov.info
       # ==== code coverage reports (ubuntu-latest only) ====
       - name: Convert coverage report to clover & htmlsummary format
         if: ${{ matrix.os == 'ubuntu-latest' }}
