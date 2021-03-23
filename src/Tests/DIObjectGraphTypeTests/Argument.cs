@@ -157,7 +157,8 @@ namespace DIObjectGraphTypeTests
         public void NullNameArgument()
         {
             Configure<CNullNameArgument, object>();
-            VerifyField("Field1", true, false, "hello + 0");
+            var field = VerifyField("Field1", true, false, "hello + 0");
+            field.Arguments.Count.ShouldBe(0);
             Verify(false);
         }
 

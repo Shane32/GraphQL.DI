@@ -1,6 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
 using GraphQL.DI;
 using GraphQL.Execution;
 using GraphQL.Language.AST;
@@ -81,6 +79,12 @@ namespace Execution
         {
             var obj = new MockDIDocumentExecuter();
             Should.Throw<Exception>(() => obj.TestSelectExecutionStrategy((OperationType)255));
+        }
+
+        [Fact]
+        public void NullServiceProviderThrows()
+        {
+            Should.Throw<ArgumentNullException>(() => new DIDocumentExecuter((IServiceProvider)null));
         }
 
         private class MockDIDocumentExecuter : DIDocumentExecuter
