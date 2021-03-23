@@ -200,14 +200,13 @@ namespace GraphQL.DI
 
             //process the method's attributes and add the field
             {
-                //determine if the field is required
-                var isNullable = GetNullability(method);
-
                 //determine the graphtype of the field
                 var graphTypeAttribute = method.GetCustomAttribute<GraphTypeAttribute>();
                 Type? graphType = graphTypeAttribute?.Type;
                 //infer the graphtype if it is not specified
                 if (graphType == null) {
+                    //determine if the field is required
+                    var isNullable = GetNullability(method);
                     if (method.ReturnType.IsConstructedGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)) {
                         graphType = InferOutputGraphType(method.ReturnType.GetGenericArguments()[0], isNullable);
                     } else {
@@ -321,6 +320,8 @@ namespace GraphQL.DI
             if (parameter.GetCustomAttribute<OptionalAttribute>() != null)
                 return true;
             if (parameter.GetCustomAttribute<RequiredAttribute>() != null)
+                return false;
+            if (parameter.GetCustomAttribute<System.ComponentModel.DataAnnotations.RequiredAttribute>() != null)
                 return false;
             if (parameter.ParameterType.IsValueType)
                 return parameter.ParameterType.IsConstructedGenericType && parameter.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>);
@@ -541,14 +542,13 @@ namespace GraphQL.DI
             //otherwise, it's a query argument
             //initialize the query argument parameters
 
-            //determine if this query argument is required
-            var nullable = GetNullability(method, param);
-
             //load the specified graph type
             var graphTypeAttribute = param.GetCustomAttribute<GraphTypeAttribute>();
             Type? graphType = graphTypeAttribute?.Type;
             //if no specific graphtype set, pull from registered graph type list
             if (graphType == null) {
+                //determine if this query argument is required
+                var nullable = GetNullability(method, param);
                 graphType = InferInputGraphType(param.ParameterType, nullable);
             }
 
