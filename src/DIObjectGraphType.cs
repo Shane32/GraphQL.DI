@@ -7,6 +7,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using GraphQL.DataLoader;
 using GraphQL.MicrosoftDI;
 using GraphQL.Resolvers;
 using GraphQL.Types;
@@ -73,6 +74,7 @@ namespace GraphQL.DI
         /// Gets or sets whether fields added to this graph type will default to running concurrently.
         /// </summary>
         protected bool DefaultConcurrent { get; set; } = false;
+
         /// <summary>
         /// Gets or sets whether concurrent fields added to this graph type will default to running in a dedicated service scope.
         /// </summary>
@@ -103,7 +105,6 @@ namespace GraphQL.DI
         {
             return typeof(TDIGraph).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(x => !x.ContainsGenericParameters);
         }
-
 
         /// <summary>
         /// Converts a specified method (<see cref="MethodInfo"/> instance) into a field definition.
@@ -165,8 +166,7 @@ namespace GraphQL.DI
                     concurrent = true;
                     //set the resolver to run the compiled resolve function
                     resolver = CreateUnscopedResolver(exprResolve, resolveFieldContextParameter);
-                }
-                else {
+                } else {
                     var methodConcurrent = method.GetCustomAttribute<ConcurrentAttribute>();
                     concurrent = DefaultConcurrent;
                     var scoped = DefaultCreateScope;
@@ -201,20 +201,17 @@ namespace GraphQL.DI
             //process the method's attributes and add the field
             {
                 //determine if the field is required
-                var isRequired = method.GetCustomAttribute<RequiredAttribute>() != null || method.GetCustomAttribute<System.ComponentModel.DataAnnotations.RequiredAttribute>() != null;
-                if (method.ReturnType.IsValueType && !(method.ReturnType.IsConstructedGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Nullable<>))) {
-                    //non-nullable value types are implicitly required, unless they are optional
-                    isRequired = true;
-                }
+                var isNullable = GetNullability(method);
+
                 //determine the graphtype of the field
                 var graphTypeAttribute = method.GetCustomAttribute<GraphTypeAttribute>();
                 Type? graphType = graphTypeAttribute?.Type;
                 //infer the graphtype if it is not specified
                 if (graphType == null) {
                     if (method.ReturnType.IsConstructedGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)) {
-                        graphType = InferOutputGraphType(method.ReturnType.GetGenericArguments()[0], isRequired);
+                        graphType = InferOutputGraphType(method.ReturnType.GetGenericArguments()[0], isNullable);
                     } else {
-                        graphType = InferOutputGraphType(method.ReturnType, isRequired);
+                        graphType = InferOutputGraphType(method.ReturnType, isNullable);
                     }
                 }
                 //load the description
@@ -241,19 +238,158 @@ namespace GraphQL.DI
         }
 
         /// <summary>
+        /// Returns a boolean indicating if the return value of a method is nullable.
+        /// </summary>
+        protected virtual bool GetNullability(MethodInfo method)
+        {
+            if (method.GetCustomAttribute<OptionalAttribute>() != null)
+                return true;
+            if (method.GetCustomAttribute<RequiredAttribute>() != null)
+                return false;
+            if (method.ReturnType.IsValueType)
+                return method.ReturnType.IsConstructedGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Nullable<>);
+
+            Nullability nullable = Nullability.Unknown;
+
+            // check the parent type first to see if there's a nullable context attribute set for it
+            var parentType = method.DeclaringType;
+            var attribute = parentType.CustomAttributes.FirstOrDefault(x =>
+                x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
+                x.ConstructorArguments.Count == 1 &&
+                x.ConstructorArguments[0].ArgumentType == typeof(byte));
+            if (attribute != null) {
+                nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
+            }
+
+            // now check the method to see if there's a nullable context attribute set for it
+            attribute = method.CustomAttributes.FirstOrDefault(x =>
+                x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
+                x.ConstructorArguments.Count == 1 &&
+                x.ConstructorArguments[0].ArgumentType == typeof(byte));
+            if (attribute != null) {
+                nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
+            }
+
+            // now check the return type to see if there's a nullable attribute for it
+            attribute = method.ReturnParameter.CustomAttributes.FirstOrDefault(x =>
+                x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute" &&
+                x.ConstructorArguments.Count == 1 &&
+                (x.ConstructorArguments[0].ArgumentType == typeof(byte) ||
+                x.ConstructorArguments[0].ArgumentType == typeof(byte[])));
+            if (attribute != null && attribute.ConstructorArguments[0].ArgumentType == typeof(byte)) {
+                nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
+            }
+
+            var nullabilityBytes = attribute?.ConstructorArguments[0].Value as byte[];
+            var index = 0;
+            nullable = Consider(method.ReturnType);
+            return nullable != Nullability.NonNullable;
+
+            Nullability Consider(Type t)
+            {
+                var g = t.IsGenericType ? t.GetGenericTypeDefinition() : null;
+                if (g == typeof(Nullable<>))
+                    return Nullability.Nullable;
+                if (t.IsValueType)
+                    return Nullability.NonNullable;
+                if ((nullabilityBytes != null && nullabilityBytes[index] == (byte)Nullability.Nullable) || (nullabilityBytes == null && nullable == Nullability.Nullable))
+                    return Nullability.Nullable;
+                if (g == typeof(IDataLoaderResult<>) || g == typeof(Task<>)) {
+                    index++;
+                    return Consider(t.GenericTypeArguments[0]);
+                }
+                if (t == typeof(IDataLoaderResult))
+                    return Nullability.Nullable;
+                if (nullabilityBytes != null)
+                    return (Nullability)nullabilityBytes[index];
+                return nullable;
+            }
+        }
+
+        private enum Nullability : byte
+        {
+            Unknown = 0,
+            NonNullable = 1,
+            Nullable = 2,
+        }
+
+        /// <summary>
+        /// Returns a boolean indicating if the parameter value is nullable
+        /// </summary>
+        protected virtual bool GetNullability(MethodInfo method, ParameterInfo parameter)
+        {
+            if (parameter.GetCustomAttribute<OptionalAttribute>() != null)
+                return true;
+            if (parameter.GetCustomAttribute<RequiredAttribute>() != null)
+                return false;
+            if (parameter.ParameterType.IsValueType)
+                return parameter.ParameterType.IsConstructedGenericType && parameter.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>);
+
+            Nullability nullable = Nullability.Unknown;
+
+            // check the parent type first to see if there's a nullable context attribute set for it
+            var parentType = method.DeclaringType;
+            var attribute = parentType.CustomAttributes.FirstOrDefault(x =>
+                x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
+                x.ConstructorArguments.Count == 1 &&
+                x.ConstructorArguments[0].ArgumentType == typeof(byte));
+            if (attribute != null) {
+                nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
+            }
+
+            // now check the method to see if there's a nullable context attribute set for it
+            attribute = method.CustomAttributes.FirstOrDefault(x =>
+                x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
+                x.ConstructorArguments.Count == 1 &&
+                x.ConstructorArguments[0].ArgumentType == typeof(byte));
+            if (attribute != null) {
+                nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
+            }
+
+            // now check the parameter to see if there's a nullable attribute for it
+            attribute = parameter.CustomAttributes.FirstOrDefault(x =>
+                x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute" &&
+                x.ConstructorArguments.Count == 1 &&
+                (x.ConstructorArguments[0].ArgumentType == typeof(byte) ||
+                x.ConstructorArguments[0].ArgumentType == typeof(byte[])));
+            if (attribute != null && attribute.ConstructorArguments[0].ArgumentType == typeof(byte)) {
+                nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
+            }
+
+            var nullabilityBytes = attribute?.ConstructorArguments[0].Value as byte[];
+            var index = 0;
+            nullable = Consider(parameter.ParameterType);
+            return nullable != Nullability.NonNullable;
+
+            Nullability Consider(Type t)
+            {
+                var g = t.IsGenericType ? t.GetGenericTypeDefinition() : null;
+                if (g == typeof(Nullable<>))
+                    return Nullability.Nullable;
+                if (t.IsValueType)
+                    return Nullability.NonNullable;
+                if ((nullabilityBytes != null && nullabilityBytes[index] == (byte)Nullability.Nullable) || (nullabilityBytes == null && nullable == Nullability.Nullable))
+                    return Nullability.Nullable;
+                if (nullabilityBytes != null)
+                    return (Nullability)nullabilityBytes[index];
+                return nullable;
+            }
+        }
+
+        /// <summary>
         /// Returns a GraphQL input type for a specified CLR type
         /// </summary>
-        protected virtual Type InferInputGraphType(Type type, bool isRequired)
+        protected virtual Type InferInputGraphType(Type type, bool nullable)
         {
-            return type.GetGraphTypeFromType(!isRequired, TypeMappingMode.InputType);
+            return type.GetGraphTypeFromType(nullable, TypeMappingMode.InputType);
         }
 
         /// <summary>
         /// Returns a GraphQL output type for a specified CLR type
         /// </summary>
-        protected virtual Type InferOutputGraphType(Type type, bool isRequired)
+        protected virtual Type InferOutputGraphType(Type type, bool nullable)
         {
-            return type.GetGraphTypeFromType(!isRequired, TypeMappingMode.OutputType);
+            return type.GetGraphTypeFromType(nullable, TypeMappingMode.OutputType);
         }
 
         /// <summary>
@@ -406,18 +542,14 @@ namespace GraphQL.DI
             //initialize the query argument parameters
 
             //determine if this query argument is required
-            var isRequired = param.GetCustomAttribute<RequiredAttribute>() != null || param.GetCustomAttribute<System.ComponentModel.DataAnnotations.RequiredAttribute>() != null;
-            if (param.ParameterType.IsValueType && !param.IsOptional && !(param.ParameterType.IsConstructedGenericType && param.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>))) {
-                //non-nullable value types are implicitly required, unless they are optional
-                isRequired = true;
-            }
+            var nullable = GetNullability(method, param);
 
             //load the specified graph type
             var graphTypeAttribute = param.GetCustomAttribute<GraphTypeAttribute>();
             Type? graphType = graphTypeAttribute?.Type;
             //if no specific graphtype set, pull from registered graph type list
             if (graphType == null) {
-                graphType = InferInputGraphType(param.ParameterType, isRequired);
+                graphType = InferInputGraphType(param.ParameterType, nullable);
             }
 
             //construct the query argument

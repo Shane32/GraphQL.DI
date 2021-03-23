@@ -34,7 +34,7 @@ namespace DIObjectGraphTypeTests
             _serviceProviderMock.Setup(x => x.GetService(typeof(IServiceScopeFactory))).Returns(_scopeFactoryMock.Object);
             _contextMock = new Mock<IResolveFieldContext>(MockBehavior.Strict);
             _contextMock.SetupGet(x => x.RequestServices).Returns(_serviceProviderMock.Object);
-            _contextMock.SetupGet(x => x.Source).Returns(() => _source);
+            _contextMock.SetupGet(x => x.Source).Returns(() => _source!);
             _contextMock.SetupGet(x => x.ParentType).Returns(new ObjectGraphType());
             _contextMock.SetupGet(x => x.Arguments).Returns(() => _arguments);
             _contextMock.SetupGet(x => x.Schema).Returns((ISchema)null);

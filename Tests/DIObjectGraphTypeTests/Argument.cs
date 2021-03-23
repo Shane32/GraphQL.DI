@@ -37,6 +37,20 @@ namespace DIObjectGraphTypeTests
         }
 
         [Fact]
+        public void NullableValueExplicit()
+        {
+            Configure<CNullableValueExplicit, object>();
+            VerifyFieldArgument("Field1", "arg", true, (int?)2);
+            VerifyField("Field1", true, false, 2);
+            Verify(false);
+        }
+
+        public class CNullableValueExplicit : DIObjectGraphBase
+        {
+            public static int? Field1([Optional] int arg) => arg;
+        }
+
+        [Fact]
         public void NullableObject()
         {
             Configure<CNullableObject, object>();
@@ -47,7 +61,7 @@ namespace DIObjectGraphTypeTests
 
         public class CNullableObject : DIObjectGraphBase
         {
-            public static string Field1(string arg) => arg;
+            public static string Field1([Optional] string arg) => arg;
         }
 
         [Fact]

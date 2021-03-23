@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Threading.Tasks;
 using GraphQL;
+using GraphQL.DataLoader;
 using GraphQL.DI;
 using GraphQL.Types;
 using Microsoft.Extensions.DependencyInjection;
@@ -53,7 +54,7 @@ namespace DIObjectGraphTypeTests
         {
             public CStaticAsyncMethod() => throw new Exception();
 
-            public static Task<string> Field1() => Task.FromResult("hello");
+            public static Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
         [Fact]
@@ -66,7 +67,7 @@ namespace DIObjectGraphTypeTests
 
         public class CInstanceAsyncMethod : DIObjectGraphBase
         {
-            public Task<string> Field1() => Task.FromResult("hello");
+            public Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
         [Fact]
@@ -204,7 +205,7 @@ namespace DIObjectGraphTypeTests
         public class CServiceProviderForScoped : DIObjectGraphBase
         {
             [Concurrent(true)]
-            public static Task<string> Field1(IServiceProvider serviceProvider) => Task.FromResult(serviceProvider.GetRequiredService<string>());
+            public static Task<string> Field1(IServiceProvider serviceProvider) => Task.FromResult<string>(serviceProvider.GetRequiredService<string>());
         }
 
         [Fact]
@@ -218,6 +219,20 @@ namespace DIObjectGraphTypeTests
         public class CNullableValue : DIObjectGraphBase<object>
         {
             public static int? Field1() => null;
+        }
+
+        [Fact]
+        public void NullableValueExplicit()
+        {
+            Configure<CNullableValueExplicit, object>();
+            VerifyField("Field1", true, false, (int?)1);
+            Verify(false);
+        }
+
+        public class CNullableValueExplicit : DIObjectGraphBase<object>
+        {
+            [Optional]
+            public static int Field1() => 1;
         }
 
         [Fact]
@@ -248,6 +263,20 @@ namespace DIObjectGraphTypeTests
         }
 
         [Fact]
+        public async Task RequiredTask()
+        {
+            Configure<CRequiredTask, object>();
+            await VerifyFieldAsync("Field1", false, true, "hello");
+            Verify(false);
+        }
+
+        public class CRequiredTask : DIObjectGraphBase<object>
+        {
+            [Required]
+            public static Task<string> Field1() => Task.FromResult("hello");
+        }
+
+        [Fact]
         public void CustomType()
         {
             Configure<CCustomType, object>();
@@ -272,7 +301,7 @@ namespace DIObjectGraphTypeTests
         public class CConcurrent : DIObjectGraphBase<object>
         {
             [Concurrent]
-            public static Task<string> Field1() => Task.FromResult("hello");
+            public static Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
         [Fact]
@@ -299,7 +328,7 @@ namespace DIObjectGraphTypeTests
 
         public class CAlwaysConcurrentForStatic : DIObjectGraphBase<object>
         {
-            public static Task<string> Field1() => Task.FromResult("hello");
+            public static Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
         [Fact]
@@ -313,7 +342,7 @@ namespace DIObjectGraphTypeTests
         public class CNotScopedWhenNoServices : DIObjectGraphBase<object>
         {
             [Concurrent(true)]
-            public static Task<string> Field1() => Task.FromResult("hello");
+            public static Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
         [Fact]
@@ -327,7 +356,7 @@ namespace DIObjectGraphTypeTests
 
         public class CAlwaysConcurrentForStaticUnlessService : DIObjectGraphBase<object>
         {
-            public static Task<string> Field1([FromServices] string value) => Task.FromResult(value);
+            public static Task<string> Field1([FromServices] string value) => Task.FromResult<string>(value);
         }
 
         [Fact]
@@ -341,7 +370,7 @@ namespace DIObjectGraphTypeTests
         public class CScopedOnlyWhenSpecified : DIObjectGraphBase<object>
         {
             [Concurrent(true)]
-            public static Task<string> Field1(IServiceProvider services) => Task.FromResult("hello");
+            public static Task<string> Field1(IServiceProvider services) => Task.FromResult<string>("hello");
         }
 
         [Fact]
@@ -355,7 +384,7 @@ namespace DIObjectGraphTypeTests
         [Concurrent(true)]
         public class CInheritsConcurrent : DIObjectGraphBase<object>
         {
-            public static Task<string> Field1(IServiceProvider services) => Task.FromResult("hello");
+            public static Task<string> Field1(IServiceProvider services) => Task.FromResult<string>("hello");
         }
 
         [Fact]
@@ -370,7 +399,41 @@ namespace DIObjectGraphTypeTests
         public class CInheritedConcurrentOverridable : DIObjectGraphBase<object>
         {
             [Concurrent(Concurrent = false)]
-            public static Task<string> Field1(IServiceProvider services) => Task.FromResult("hello");
+            public static Task<string> Field1(IServiceProvider services) => Task.FromResult<string>("hello");
+        }
+
+        [Theory]
+        [InlineData("Field1", typeof(GraphQLClrOutputTypeReference<string>))]
+        [InlineData("Field2", typeof(NonNullGraphType<GraphQLClrOutputTypeReference<string>>))]
+        [InlineData("Field3", typeof(NonNullGraphType<GraphQLClrOutputTypeReference<int>>))]
+        [InlineData("Field4", typeof(GraphQLClrOutputTypeReference<int>))]
+        [InlineData("Field5", typeof(GraphQLClrOutputTypeReference<int>))]
+        //[InlineData("Field6", typeof(GraphQLClrOutputTypeReference<object>)] //Need to fix graphql-dotnet bug 2441 first
+        [InlineData("Field7", typeof(GraphQLClrOutputTypeReference<string>))]
+        [InlineData("Field8", typeof(NonNullGraphType<GraphQLClrOutputTypeReference<int>>))]
+        [InlineData("Field9", typeof(GraphQLClrOutputTypeReference<int>))]
+        [InlineData("Field10", typeof(GraphQLClrOutputTypeReference<string>))]
+        public void SupportsDataLoader(string fieldName, Type graphType)
+        {
+            Configure<CSupportsDataLoader, object>(true);
+            VerifyField<object>(fieldName, graphType, false, null);
+            Verify(false);
+        }
+
+        public class CSupportsDataLoader : DIObjectGraphBase<object>
+        {
+            public IDataLoaderResult<string> Field1() => null;
+            [Required]
+            public IDataLoaderResult<string> Field2() => null;
+            public IDataLoaderResult<int> Field3() => null;
+            [Optional]
+            public IDataLoaderResult<int> Field4() => null;
+            public IDataLoaderResult<int?> Field5() => null;
+            public IDataLoaderResult Field6() => null;
+            public Task<IDataLoaderResult<string>> Field7() => null;
+            public Task<IDataLoaderResult<int>> Field8() => null;
+            public Task<IDataLoaderResult<int?>> Field9() => null;
+            public Task<IDataLoaderResult<IDataLoaderResult<string>>> Field10() => null;
         }
     }
 }

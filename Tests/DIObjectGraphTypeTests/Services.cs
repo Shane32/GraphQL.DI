@@ -28,7 +28,7 @@ namespace DIObjectGraphTypeTests
         public void ServiceMissingThrows()
         {
             Configure<CService, object>();
-            _serviceProviderMock.Setup(x => x.GetService(typeof(string))).Returns((string)null).Verifiable();
+            _serviceProviderMock.Setup(x => x.GetService(typeof(string))).Returns((string)null!).Verifiable();
             Should.Throw<InvalidOperationException>(() => VerifyField("Field1", true, false, "hello"));
             Verify(false);
         }
