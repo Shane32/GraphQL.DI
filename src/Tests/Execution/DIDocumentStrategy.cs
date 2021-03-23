@@ -1,15 +1,9 @@
-using System;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.DataLoader;
 using GraphQL.DI;
-using GraphQL.Execution;
-using GraphQL.Language.AST;
 using GraphQL.SystemTextJson;
 using GraphQL.Types;
-using GraphQL.Validation;
-using GraphQL.Validation.Complexity;
-using Moq;
 using Shouldly;
 using Xunit;
 
@@ -24,14 +18,19 @@ namespace Execution
         [Fact]
         public async Task ItRuns()
         {
+            var actual = await RunQuery("{field1,field2,field3,field4,field5,field6,field7,field8}");
+            actual.ShouldBe(@"{""data"":{""field1"":""ret1"",""field2"":""ret2"",""field3"":""ret3"",""field4"":""ret4"",""field5"":""ret5"",""field6"":""ret6"",""field7"":""ret7"",""field8"":""ret8""}}");
+        }
+
+        private async Task<string> RunQuery(string query)
+        {
             var result = await _executer.ExecuteAsync(new GraphQL.ExecutionOptions {
-                Query = "{field1,field2,field3,field4,field5,field6,field7,field8}",
+                Query = query,
                 Schema = _schema,
                 MaxParallelExecutionCount = 2,
             });
             result.Errors.ShouldBeNull();
-            var resultString = await _writer.WriteToStringAsync(result);
-            resultString.ShouldBe(@"{""data"":{""field1"":""ret1"",""field2"":""ret2"",""field3"":""ret3"",""field4"":""ret4"",""field5"":""ret5"",""field6"":""ret6"",""field7"":""ret7"",""field8"":""ret8""}}");
+            return await _writer.WriteToStringAsync(result);
         }
 
         private class MySchema : Schema
