@@ -70,6 +70,7 @@ namespace DIObjectGraphTypeTests
             field.Resolver.ShouldNotBeNull();
             _contextMock.Setup(x => x.FieldDefinition).Returns(field);
             field.Resolver.Resolve(context).ShouldBe(returnValue);
+            _arguments.Clear();
             return field;
         }
 
@@ -88,6 +89,7 @@ namespace DIObjectGraphTypeTests
             var taskRet = ret.ShouldBeOfType<Task<T>>();
             var final = await taskRet;
             final.ShouldBe(returnValue);
+            _arguments.Clear();
             return field;
         }
 
@@ -96,7 +98,12 @@ namespace DIObjectGraphTypeTests
             return VerifyFieldArgument(fieldName, argumentName, typeof(T).GetGraphTypeFromType(nullable, TypeMappingMode.InputType), returnValue);
         }
 
-        protected QueryArgument VerifyFieldArgument<T>(string fieldName, string argumentName, Type graphType, T returnValue)
+        protected QueryArgument VerifyFieldArgument<T>(string fieldName, string argumentName, bool nullable)
+        {
+            return VerifyFieldArgument<T>(fieldName, argumentName, typeof(T).GetGraphTypeFromType(nullable, TypeMappingMode.InputType));
+        }
+
+        protected QueryArgument VerifyFieldArgument<T>(string fieldName, string argumentName, Type graphType)
         {
             _graphType.ShouldNotBeNull();
             _graphType.Fields.ShouldNotBeNull();
@@ -106,6 +113,12 @@ namespace DIObjectGraphTypeTests
             var argument = field.Arguments.Find(argumentName);
             argument.ShouldNotBeNull();
             argument.Type.ShouldBe(graphType);
+            return argument;
+        }
+
+        protected QueryArgument VerifyFieldArgument<T>(string fieldName, string argumentName, Type graphType, T returnValue)
+        {
+            var argument = VerifyFieldArgument<T>(fieldName, argumentName, graphType);
             _arguments.Add(argumentName, new ArgumentValue(returnValue, ArgumentSource.FieldDefault));
             return argument;
         }

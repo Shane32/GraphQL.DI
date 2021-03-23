@@ -402,6 +402,81 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1(IServiceProvider services) => Task.FromResult<string>("hello");
         }
 
+        [Fact]
+        public async Task RemoveAsyncFromName()
+        {
+            Configure<CRemoveAsyncFromName, object>();
+            await VerifyFieldAsync("Field1", true, true, "hello");
+            Verify(false);
+        }
+
+        public class CRemoveAsyncFromName : DIObjectGraphBase<object>
+        {
+            public static Task<string> Field1Async() => Task.FromResult("hello");
+        }
+
+        [Fact]
+        public void SkipVoidMembers()
+        {
+            Configure<CSkipVoidMembers, object>();
+            _graphType.Fields.Find("Field1").ShouldBeNull();
+            _graphType.Fields.Find("Field2").ShouldBeNull();
+        }
+
+        public class CSkipVoidMembers : DIObjectGraphBase<object>
+        {
+            public static Task Field1() => Task.CompletedTask;
+            public static void Field2() { }
+        }
+
+        [Fact]
+        public void SkipNullName()
+        {
+            Configure<CSkipNullName, object>();
+            _graphType.Fields.Find("Field1").ShouldBeNull();
+        }
+
+        public class CSkipNullName : DIObjectGraphBase<object>
+        {
+            [Name(null)]
+            public static string Field1() => "hello";
+        }
+
+        [Fact]
+        public void AddsMetadata()
+        {
+            Configure<CAddsMetadata, object>();
+            var field = VerifyField("Field1", true, false, "hello");
+            field.GetMetadata<string>("test").ShouldBe("value");
+            Verify(false);
+        }
+
+        public class CAddsMetadata : DIObjectGraphBase<object>
+        {
+            [Metadata("test", "value")]
+            public static string Field1() => "hello";
+        }
+
+        [Fact]
+        public void AddsInheritedMetadata()
+        {
+            Configure<CAddsInheritedMetadata, object>();
+            var field = VerifyField("Field1", true, false, "hello");
+            field.GetMetadata<string>("test").ShouldBe("value2");
+            Verify(false);
+        }
+
+        public class CAddsInheritedMetadata : DIObjectGraphBase<object>
+        {
+            [InheritedMetadata("value2")]
+            public static string Field1() => "hello";
+        }
+
+        private class InheritedMetadata : MetadataAttribute
+        {
+            public InheritedMetadata(string value) : base("test", value) { }
+        }
+
         [Theory]
         [InlineData("Field1", typeof(GraphQLClrOutputTypeReference<string>))]
         [InlineData("Field2", typeof(NonNullGraphType<GraphQLClrOutputTypeReference<string>>))]

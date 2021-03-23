@@ -248,29 +248,10 @@ namespace GraphQL.DI
             if (method.ReturnType.IsValueType)
                 return method.ReturnType.IsConstructedGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Nullable<>);
 
-            Nullability nullable = Nullability.Unknown;
-
-            // check the parent type first to see if there's a nullable context attribute set for it
-            var parentType = method.DeclaringType;
-            var attribute = parentType.CustomAttributes.FirstOrDefault(x =>
-                x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
-                x.ConstructorArguments.Count == 1 &&
-                x.ConstructorArguments[0].ArgumentType == typeof(byte));
-            if (attribute != null) {
-                nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
-            }
-
-            // now check the method to see if there's a nullable context attribute set for it
-            attribute = method.CustomAttributes.FirstOrDefault(x =>
-                x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
-                x.ConstructorArguments.Count == 1 &&
-                x.ConstructorArguments[0].ArgumentType == typeof(byte));
-            if (attribute != null) {
-                nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
-            }
+            Nullability nullable = GetMethodDefaultNullability(method);
 
             // now check the return type to see if there's a nullable attribute for it
-            attribute = method.ReturnParameter.CustomAttributes.FirstOrDefault(x =>
+            var attribute = method.ReturnParameter.CustomAttributes.FirstOrDefault(x =>
                 x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute" &&
                 x.ConstructorArguments.Count == 1 &&
                 (x.ConstructorArguments[0].ArgumentType == typeof(byte) ||
@@ -312,21 +293,9 @@ namespace GraphQL.DI
             Nullable = 2,
         }
 
-        /// <summary>
-        /// Returns a boolean indicating if the parameter value is nullable
-        /// </summary>
-        protected virtual bool GetNullability(MethodInfo method, ParameterInfo parameter)
+        private Nullability GetMethodDefaultNullability(MethodInfo method)
         {
-            if (parameter.GetCustomAttribute<OptionalAttribute>() != null)
-                return true;
-            if (parameter.GetCustomAttribute<RequiredAttribute>() != null)
-                return false;
-            if (parameter.GetCustomAttribute<System.ComponentModel.DataAnnotations.RequiredAttribute>() != null)
-                return false;
-            if (parameter.ParameterType.IsValueType)
-                return parameter.ParameterType.IsConstructedGenericType && parameter.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>);
-
-            Nullability nullable = Nullability.Unknown;
+            var nullable = Nullability.Unknown;
 
             // check the parent type first to see if there's a nullable context attribute set for it
             var parentType = method.DeclaringType;
@@ -347,8 +316,29 @@ namespace GraphQL.DI
                 nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
             }
 
+            return nullable;
+        }
+
+        /// <summary>
+        /// Returns a boolean indicating if the parameter value is nullable
+        /// </summary>
+        protected virtual bool GetNullability(MethodInfo method, ParameterInfo parameter)
+        {
+            if (parameter.GetCustomAttribute<OptionalAttribute>() != null)
+                return true;
+            if (parameter.GetCustomAttribute<RequiredAttribute>() != null)
+                return false;
+            if (parameter.GetCustomAttribute<System.ComponentModel.DataAnnotations.RequiredAttribute>() != null)
+                return false;
+            if (parameter.IsOptional)
+                return true;
+            if (parameter.ParameterType.IsValueType)
+                return parameter.ParameterType.IsConstructedGenericType && parameter.ParameterType.GetGenericTypeDefinition() == typeof(Nullable<>);
+
+            Nullability nullable = GetMethodDefaultNullability(method);
+
             // now check the parameter to see if there's a nullable attribute for it
-            attribute = parameter.CustomAttributes.FirstOrDefault(x =>
+            var attribute = parameter.CustomAttributes.FirstOrDefault(x =>
                 x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute" &&
                 x.ConstructorArguments.Count == 1 &&
                 (x.ConstructorArguments[0].ArgumentType == typeof(byte) ||
@@ -358,23 +348,11 @@ namespace GraphQL.DI
             }
 
             var nullabilityBytes = attribute?.ConstructorArguments[0].Value as byte[];
-            var index = 0;
-            nullable = Consider(parameter.ParameterType);
+            if ((nullabilityBytes != null && nullabilityBytes[0] == (byte)Nullability.Nullable) || (nullabilityBytes == null && nullable == Nullability.Nullable))
+                return true;
+            if (nullabilityBytes != null)
+                return (Nullability)nullabilityBytes[0] != Nullability.NonNullable;
             return nullable != Nullability.NonNullable;
-
-            Nullability Consider(Type t)
-            {
-                var g = t.IsGenericType ? t.GetGenericTypeDefinition() : null;
-                if (g == typeof(Nullable<>))
-                    return Nullability.Nullable;
-                if (t.IsValueType)
-                    return Nullability.NonNullable;
-                if ((nullabilityBytes != null && nullabilityBytes[index] == (byte)Nullability.Nullable) || (nullabilityBytes == null && nullable == Nullability.Nullable))
-                    return Nullability.Nullable;
-                if (nullabilityBytes != null)
-                    return (Nullability)nullabilityBytes[index];
-                return nullable;
-            }
         }
 
         /// <summary>

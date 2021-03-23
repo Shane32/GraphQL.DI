@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Threading;
 using GraphQL.DI;
 using GraphQL.Types;
 using Shouldly;
@@ -79,6 +80,20 @@ namespace DIObjectGraphTypeTests
         }
 
         [Fact]
+        public void NonNullableObject2()
+        {
+            Configure<CNonNullableObject2, object>();
+            VerifyFieldArgument("Field1", "arg", false, "hello");
+            VerifyField("Field1", true, false, "hello");
+            Verify(false);
+        }
+
+        public class CNonNullableObject2 : DIObjectGraphBase
+        {
+            public static string Field1([System.ComponentModel.DataAnnotations.Required] string arg) => arg;
+        }
+
+        [Fact]
         public void Name()
         {
             Configure<CName, object>();
@@ -119,6 +134,53 @@ namespace DIObjectGraphTypeTests
         public class CGraphType : DIObjectGraphBase
         {
             public static string Field1([GraphType(typeof(StringGraphType))] string arg) => arg;
+        }
+
+        [Fact]
+        public void CancellationToken()
+        {
+            using var cts = new CancellationTokenSource();
+            var token = cts.Token;
+            cts.Cancel();
+            Configure<CCancellationToken, object>();
+            _contextMock.SetupGet(x => x.CancellationToken).Returns(token).Verifiable();
+            VerifyField("Field1", true, false, "hello + True");
+            Verify(false);
+        }
+
+        public class CCancellationToken : DIObjectGraphBase
+        {
+            public static string Field1(CancellationToken cancellationToken) => "hello + " + cancellationToken.IsCancellationRequested;
+        }
+
+        [Fact]
+        public void NullNameArgument()
+        {
+            Configure<CNullNameArgument, object>();
+            VerifyField("Field1", true, false, "hello + 0");
+            Verify(false);
+        }
+
+        public class CNullNameArgument : DIObjectGraphBase
+        {
+            public static string Field1([Name(null)] int arg) => "hello + " + arg;
+        }
+
+        [Fact]
+        public void DefaultValue()
+        {
+            Configure<CDefaultValue, object>();
+            VerifyFieldArgument("Field1", "arg1", true, 2);
+            VerifyField("Field1", false, false, 2);
+            VerifyFieldArgument<int>("Field2", "arg2", true);
+            VerifyField("Field2", false, false, 5);
+            Verify(false);
+        }
+
+        public class CDefaultValue : DIObjectGraphBase
+        {
+            public static int Field1(int arg1 = 4) => arg1;
+            public static int Field2(int arg2 = 5) => arg2;
         }
 
     }
