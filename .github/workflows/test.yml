@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: 
-          #- ubuntu-latest
+          - ubuntu-latest
           - windows-latest
     steps:
       - name: Checkout source
@@ -29,13 +29,17 @@ jobs:
         uses: actions/setup-dotnet@v1
         with:
           dotnet-version: '3.1.x'
+      - name: Use .NET Core 5.0 SDK
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '5.0.x'
           source-url: https://nuget.pkg.github.com/Shane32/index.json
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Install dependencies
         run: dotnet restore
-      #- name: Build solution [Release]
-      #  run: dotnet build --no-restore -c Release -p:NoWarn=CS1591
+      - name: Build solution [Release]
+        run: dotnet build --no-restore -c Release -p:NoWarn=CS1591
       - name: Build solution [Debug]
         run: dotnet build --no-restore -p:NoWarn=CS1591 -p:DebugType=pdbonly
       - name: Test solution [Debug]
