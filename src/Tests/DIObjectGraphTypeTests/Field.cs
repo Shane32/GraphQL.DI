@@ -8,13 +8,14 @@ using GraphQL.Types;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Shouldly;
-using Xunit;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DIObjectGraphTypeTests
 {
+    [TestClass]
     public class Field : DIObjectGraphTypeTestBase
     {
-        [Fact]
+        [TestMethod]
         public void StaticMethod()
         {
             Configure<CStaticMethod, object>();
@@ -29,7 +30,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1() => "hello";
         }
 
-        [Fact]
+        [TestMethod]
         public void InstanceMethod()
         {
             Configure<CInstanceMethod, object>(true);
@@ -42,7 +43,7 @@ namespace DIObjectGraphTypeTests
             public string Field1() => "hello";
         }
 
-        [Fact]
+        [TestMethod]
         public async Task StaticAsyncMethod()
         {
             Configure<CStaticAsyncMethod, object>();
@@ -57,7 +58,7 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task InstanceAsyncMethod()
         {
             Configure<CInstanceAsyncMethod, object>(true);
@@ -70,7 +71,7 @@ namespace DIObjectGraphTypeTests
             public Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
-        [Fact]
+        [TestMethod]
         public void Name()
         {
             Configure<CName, object>();
@@ -84,7 +85,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1() => "hello";
         }
 
-        [Fact]
+        [TestMethod]
         public void Description()
         {
             Configure<CDescription, object>();
@@ -94,11 +95,11 @@ namespace DIObjectGraphTypeTests
 
         public class CDescription : DIObjectGraphBase
         {
-            [Description("DescriptionTest")]
+            [System.ComponentModel.Description("DescriptionTest")]
             public static string Field1() => "hello";
         }
 
-        [Fact]
+        [TestMethod]
         public void Obsolete()
         {
             Configure<CObsolete, object>();
@@ -112,7 +113,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1() => "hello";
         }
 
-        [Fact]
+        [TestMethod]
         public void Context()
         {
             Configure<CContext, object>();
@@ -127,7 +128,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1(IResolveFieldContext context) => (string)context.Source;
         }
 
-        [Fact]
+        [TestMethod]
         public void Context_Typed()
         {
             Configure<CContext_Typed, object>();
@@ -142,7 +143,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1(IResolveFieldContext<object> context) => (string)context.Source;
         }
 
-        [Fact]
+        [TestMethod]
         public void Context_WrongType()
         {
             Should.Throw<InvalidOperationException>(() => Configure<CContext_WrongType, object>());
@@ -153,7 +154,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1(IResolveFieldContext<string> context) => context.Source;
         }
 
-        [Fact]
+        [TestMethod]
         public void Source()
         {
             Configure<CSource, object>();
@@ -168,7 +169,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1([FromSource] object source) => (string)source;
         }
 
-        [Fact]
+        [TestMethod]
         public void Source_WrongType()
         {
             Should.Throw<InvalidOperationException>(() => Configure<CSource_WrongType, int>());
@@ -179,7 +180,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1([FromSource] string source) => source;
         }
 
-        [Fact]
+        [TestMethod]
         public void ServiceProvider()
         {
             Configure<CServiceProvider, object>();
@@ -193,7 +194,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1(IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<string>();
         }
 
-        [Fact]
+        [TestMethod]
         public async Task ServiceProviderForScoped()
         {
             Configure<CServiceProviderForScoped, object>();
@@ -208,7 +209,7 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1(IServiceProvider serviceProvider) => Task.FromResult<string>(serviceProvider.GetRequiredService<string>());
         }
 
-        [Fact]
+        [TestMethod]
         public void NullableValue()
         {
             Configure<CNullableValue, object>();
@@ -221,7 +222,7 @@ namespace DIObjectGraphTypeTests
             public static int? Field1() => null;
         }
 
-        [Fact]
+        [TestMethod]
         public void NullableValueExplicit()
         {
             Configure<CNullableValueExplicit, object>();
@@ -235,7 +236,7 @@ namespace DIObjectGraphTypeTests
             public static int Field1() => 1;
         }
 
-        [Fact]
+        [TestMethod]
         public void NonNullableValue()
         {
             Configure<CNonNullableValue, object>();
@@ -248,7 +249,7 @@ namespace DIObjectGraphTypeTests
             public static int Field1() => 1;
         }
 
-        [Fact]
+        [TestMethod]
         public void Required()
         {
             Configure<CRequired, object>();
@@ -262,7 +263,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1() => "hello";
         }
 
-        [Fact]
+        [TestMethod]
         public async Task RequiredTask()
         {
             Configure<CRequiredTask, object>();
@@ -276,7 +277,7 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1() => Task.FromResult("hello");
         }
 
-        [Fact]
+        [TestMethod]
         public void CustomType()
         {
             Configure<CCustomType, object>();
@@ -290,7 +291,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1() => "hello";
         }
 
-        [Fact]
+        [TestMethod]
         public async Task Concurrent()
         {
             Configure<CConcurrent, object>();
@@ -304,7 +305,7 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
-        [Fact]
+        [TestMethod]
         public void ConcurrentIgnoredForSynchronousMethods()
         {
             Configure<CConcurrentIgnoredForSynchronousMethods, object>();
@@ -318,7 +319,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1() => "hello";
         }
 
-        [Fact]
+        [TestMethod]
         public async Task AlwaysConcurrentForStatic()
         {
             Configure<CAlwaysConcurrentForStatic, object>();
@@ -331,7 +332,7 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task NotScopedWhenNoServices()
         {
             Configure<CNotScopedWhenNoServices, object>();
@@ -345,7 +346,7 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task AlwaysConcurrentForStaticUnlessService()
         {
             Configure<CAlwaysConcurrentForStaticUnlessService, object>();
@@ -359,7 +360,7 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1([FromServices] string value) => Task.FromResult<string>(value);
         }
 
-        [Fact]
+        [TestMethod]
         public async Task ScopedOnlyWhenSpecifiedWithServices()
         {
             Configure<CScopedOnlyWhenSpecified, object>();
@@ -373,7 +374,7 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1(IServiceProvider services) => Task.FromResult<string>("hello");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task InheritsConcurrent()
         {
             Configure<CInheritsConcurrent, object>();
@@ -387,7 +388,7 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1(IServiceProvider services) => Task.FromResult<string>("hello");
         }
 
-        [Fact]
+        [TestMethod]
         public async Task InheritedConcurrentOverridable()
         {
             Configure<CInheritedConcurrentOverridable, object>();
@@ -402,17 +403,17 @@ namespace DIObjectGraphTypeTests
             public static Task<string> Field1(IServiceProvider services) => Task.FromResult<string>("hello");
         }
 
-        [Theory]
-        [InlineData("Field1", typeof(GraphQLClrOutputTypeReference<string>))]
-        [InlineData("Field2", typeof(NonNullGraphType<GraphQLClrOutputTypeReference<string>>))]
-        [InlineData("Field3", typeof(NonNullGraphType<GraphQLClrOutputTypeReference<int>>))]
-        [InlineData("Field4", typeof(GraphQLClrOutputTypeReference<int>))]
-        [InlineData("Field5", typeof(GraphQLClrOutputTypeReference<int>))]
-        //[InlineData("Field6", typeof(GraphQLClrOutputTypeReference<object>)] //Need to fix graphql-dotnet bug 2441 first
-        [InlineData("Field7", typeof(GraphQLClrOutputTypeReference<string>))]
-        [InlineData("Field8", typeof(NonNullGraphType<GraphQLClrOutputTypeReference<int>>))]
-        [InlineData("Field9", typeof(GraphQLClrOutputTypeReference<int>))]
-        [InlineData("Field10", typeof(GraphQLClrOutputTypeReference<string>))]
+        [DataTestMethod]
+        [DataRow("Field1", typeof(GraphQLClrOutputTypeReference<string>))]
+        [DataRow("Field2", typeof(NonNullGraphType<GraphQLClrOutputTypeReference<string>>))]
+        [DataRow("Field3", typeof(NonNullGraphType<GraphQLClrOutputTypeReference<int>>))]
+        [DataRow("Field4", typeof(GraphQLClrOutputTypeReference<int>))]
+        [DataRow("Field5", typeof(GraphQLClrOutputTypeReference<int>))]
+        //[DataRow("Field6", typeof(GraphQLClrOutputTypeReference<object>)] //Need to fix graphql-dotnet bug 2441 first
+        [DataRow("Field7", typeof(GraphQLClrOutputTypeReference<string>))]
+        [DataRow("Field8", typeof(NonNullGraphType<GraphQLClrOutputTypeReference<int>>))]
+        [DataRow("Field9", typeof(GraphQLClrOutputTypeReference<int>))]
+        [DataRow("Field10", typeof(GraphQLClrOutputTypeReference<string>))]
         public void SupportsDataLoader(string fieldName, Type graphType)
         {
             Configure<CSupportsDataLoader, object>(true);

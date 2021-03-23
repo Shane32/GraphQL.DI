@@ -1,14 +1,15 @@
 using System.ComponentModel;
 using GraphQL.DI;
 using GraphQL.Types;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Shouldly;
-using Xunit;
 
 namespace DIObjectGraphTypeTests
 {
+    [TestClass]
     public class Argument : DIObjectGraphTypeTestBase
     {
-        [Fact]
+        [TestMethod]
         public void NonNullValue()
         {
             Configure<CNonNullValue, object>();
@@ -22,7 +23,7 @@ namespace DIObjectGraphTypeTests
             public static int Field1(int arg) => arg;
         }
 
-        [Fact]
+        [TestMethod]
         public void NullableValue()
         {
             Configure<CNullableValue, object>();
@@ -36,7 +37,7 @@ namespace DIObjectGraphTypeTests
             public static int? Field1(int? arg) => arg;
         }
 
-        [Fact]
+        [TestMethod]
         public void NullableValueExplicit()
         {
             Configure<CNullableValueExplicit, object>();
@@ -50,7 +51,7 @@ namespace DIObjectGraphTypeTests
             public static int? Field1([Optional] int arg) => arg;
         }
 
-        [Fact]
+        [TestMethod]
         public void NullableObject()
         {
             Configure<CNullableObject, object>();
@@ -64,7 +65,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1([Optional] string arg) => arg;
         }
 
-        [Fact]
+        [TestMethod]
         public void NonNullableObject()
         {
             Configure<CNonNullableObject, object>();
@@ -78,7 +79,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1([Required] string arg) => arg;
         }
 
-        [Fact]
+        [TestMethod]
         public void Name()
         {
             Configure<CName, object>();
@@ -92,7 +93,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1([Name("AltName")] string arg) => arg;
         }
 
-        [Fact]
+        [TestMethod]
         public void Description()
         {
             Configure<CDescription, object>();
@@ -104,10 +105,10 @@ namespace DIObjectGraphTypeTests
 
         public class CDescription : DIObjectGraphBase
         {
-            public static string Field1([Description("TestDescription")] string arg) => arg;
+            public static string Field1([System.ComponentModel.Description("TestDescription")] string arg) => arg;
         }
 
-        [Fact]
+        [TestMethod]
         public void GraphType()
         {
             Configure<CGraphType, object>();
