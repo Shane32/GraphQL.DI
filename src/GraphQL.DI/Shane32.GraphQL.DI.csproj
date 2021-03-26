@@ -9,8 +9,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GraphQL" Version="4.0.2" />
-    <PackageReference Include="GraphQL.MicrosoftDI" Version="4.0.2" />
+    <PackageReference Include="GraphQL" Version="4.1.0" />
+    <PackageReference Include="GraphQL.MicrosoftDI" Version="4.1.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.0.0" />
   </ItemGroup>
 
