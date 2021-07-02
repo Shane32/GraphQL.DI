@@ -31,7 +31,9 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void GraphObsolete()
         {
+#pragma warning disable CS0618 // Member is obsolete
             Configure<CGraphObsolete, object>().DeprecationReason.ShouldBe("TestDeprecationReason");
+#pragma warning restore CS0618 // Member is obsolete
         }
 
         [Obsolete("TestDeprecationReason")]
