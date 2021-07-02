@@ -480,6 +480,13 @@ namespace GraphQL.DI
                 //and do not add it as a QueryArgument
                 return null;
             }
+            if (param.ParameterType == typeof(TSource) && typeof(TSource) != typeof(object) && param.Name == "source") {
+                //retrieve the value and cast it to the specified type
+                //e.g. Func<IResolveFieldContext, TSource> = (context) => (TSource)context.Source;
+                expr = Expression.Convert(Expression.Property(resolveFieldContextParameter, _sourceProperty), param.ParameterType);
+                //and do not add it as a QueryArgument
+                return null;
+            }
             if (param.GetCustomAttribute<FromSourceAttribute>() != null) {
                 //validate that type matches TSource
                 if (!param.ParameterType.IsAssignableFrom(typeof(TSource)))
