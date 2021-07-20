@@ -64,8 +64,10 @@ namespace GraphQL.DI
 
         //grab some methods via reflection for us to use later
         private static readonly MethodInfo _getRequiredServiceMethod = typeof(ServiceProviderServiceExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(x => x.Name == nameof(ServiceProviderServiceExtensions.GetRequiredService) && !x.IsGenericMethod);
+        private static readonly MethodInfo _getOrCreateServiceMethod = typeof(ActivatorUtilities).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(x => x.Name == nameof(ActivatorUtilities.GetServiceOrCreateInstance) && !x.IsGenericMethod);
         private static readonly MethodInfo _asMethod = typeof(ResolveFieldContextExtensions).GetMethods(BindingFlags.Static | BindingFlags.Public).Single(x => x.Name == nameof(ResolveFieldContextExtensions.As) && x.GetParameters().Length == 1 && x.GetParameters()[0].ParameterType == typeof(IResolveFieldContext));
         private static readonly MethodInfo _getArgumentMethod = typeof(ResolveFieldContextExtensions).GetMethods(BindingFlags.Public | BindingFlags.Static).Single(x => x.Name == nameof(ResolveFieldContextExtensions.GetArgument) && x.IsGenericMethod);
+        private static readonly MethodInfo _setContextMethod = typeof(IDIObjectGraphBase).GetProperty(nameof(IDIObjectGraphBase.Context)).GetSetMethod();
         private static readonly PropertyInfo _sourceProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.Source), BindingFlags.Instance | BindingFlags.Public);
         private static readonly PropertyInfo _requestServicesProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.RequestServices), BindingFlags.Instance | BindingFlags.Public);
         private static readonly PropertyInfo _cancellationTokenProperty = typeof(IResolveFieldContext).GetProperty(nameof(IResolveFieldContext.CancellationToken), BindingFlags.Public | BindingFlags.Instance);
@@ -374,11 +376,24 @@ namespace GraphQL.DI
         /// <summary>
         /// Returns an expression that gets/creates an instance of <typeparamref name="TDIGraph"/> from a <see cref="IResolveFieldContext"/>.
         /// Defaults to the following:
-        /// <code>context =&gt; context.RequestServices.GetRequiredService&lt;TDIGraph&gt;();</code>
+        /// <code>context =&gt; {<br/>
+        /// var g = ActivatorUtilities.GetServiceOrCreateInstance&lt;T&gt;(context.RequestServices);<br/>
+        /// ((IDIObjectGraphBase)g).Context = context;<br/>
+        /// return g;<br/>
+        /// }</code>
         /// </summary>
         protected virtual Expression GetInstanceExpression(ParameterExpression resolveFieldContextParameter)
         {
-            return GetServiceExpression(resolveFieldContextParameter, typeof(TDIGraph));
+            var serviceType = typeof(TDIGraph);
+            var serviceProvider = GetServiceProviderExpression(resolveFieldContextParameter);
+            var type = Expression.Constant(serviceType ?? throw new ArgumentNullException(nameof(serviceType)));
+            var getService = Expression.Call(_getOrCreateServiceMethod, serviceProvider, type);
+            var cast = Expression.Convert(getService, serviceType);
+            var variable = Expression.Parameter(serviceType);
+            var setVariable = Expression.Assign(variable, cast);
+            var setContext = Expression.Call(variable, _setContextMethod, resolveFieldContextParameter);
+            var block = Expression.Block(serviceType, new ParameterExpression[] { variable }, new Expression[] { setVariable, setContext, variable });
+            return block;
         }
 
         /// <summary>
