@@ -6,6 +6,7 @@ namespace GraphQL.DI
 {
     public interface IDIObjectGraphBase
     {
+        public IResolveFieldContext Context { get; set; }
     }
 
     public interface IDIObjectGraphBase<TSource> : IDIObjectGraphBase
