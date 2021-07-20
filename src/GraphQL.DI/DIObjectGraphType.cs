@@ -20,12 +20,12 @@ namespace GraphQL.DI
     /// Wraps a <see cref="DIObjectGraphBase"/> graph type for use with GraphQL. This class should be registered as a singleton
     /// within your dependency injection provider.
     /// </summary>
-    public class DIObjectGraphType<TDIGraph> : DIObjectGraphType<TDIGraph, object> where TDIGraph : DIObjectGraphBase<object> { }
+    public class DIObjectGraphType<TDIGraph> : DIObjectGraphType<TDIGraph, object> where TDIGraph : IDIObjectGraphBase<object> { }
     /// <summary>
     /// Wraps a <see cref="DIObjectGraphBase{TSource}"/> graph type for use with GraphQL. This class should be registered as a singleton
     /// within your dependency injection provider.
     /// </summary>
-    public class DIObjectGraphType<TDIGraph, TSource> : ObjectGraphType<TSource> where TDIGraph : DIObjectGraphBase<TSource>
+    public class DIObjectGraphType<TDIGraph, TSource> : ObjectGraphType<TSource> where TDIGraph : IDIObjectGraphBase<TSource>
     {
         /// <summary>
         /// Initializes a new instance, configuring the <see cref="GraphType.Name"/>, <see cref="GraphType.Description"/>,
