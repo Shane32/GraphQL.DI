@@ -43,6 +43,18 @@ namespace DIObjectGraphTypeTests
         }
 
         [Fact]
+        public void SetsContext()
+        {
+            Configure<CVerifyContext, object>(true);
+            _graphType.Fields.Find("Field1").Resolver.Resolve(_contextMock.Object).ShouldBe(_contextMock.Object);
+        }
+
+        public class CVerifyContext : DIObjectGraphBase
+        {
+            public object Field1() => Context;
+        }
+
+        [Fact]
         public async Task StaticAsyncMethod()
         {
             Configure<CStaticAsyncMethod, object>();
