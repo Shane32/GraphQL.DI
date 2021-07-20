@@ -1,5 +1,5 @@
 namespace GraphQL.DI
-{\
+{
     /// <summary>
     /// This is a required base type of all DI-created graph types. <see cref="DIObjectGraphBase"/> may be
     /// used if the <see cref="IResolveFieldContext.Source"/> type is <see cref="object"/>.
