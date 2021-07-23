@@ -22,8 +22,8 @@ namespace Execution
         [Fact]
         public async Task ItRuns()
         {
-            var actual = await RunQuery("{field1,field2,field3,field4,field5,field6,field7,field8,field9,field10}");
-            actual.ShouldBe(@"{""data"":{""field1"":""ret1"",""field2"":""ret2"",""field3"":""ret3"",""field4"":""ret4"",""field5"":""ret5"",""field6"":""ret6"",""field7"":""ret7"",""field8"":""ret8"",""field9"":""ret9"",""field10"":""ret10""}}");
+            var actual = await RunQuery("{field1,field2,field3,field4,field5,field6,field7,field8,field9,field10,field11,field12,field13,field14}");
+            actual.ShouldBe(@"{""data"":{""field1"":""ret1"",""field2"":""ret2"",""field3"":""ret3"",""field4"":""ret4"",""field5"":""ret5"",""field6"":""ret6"",""field7"":""ret7"",""field8"":""ret8"",""field9"":""ret9"",""field10"":""ret10"",""field11"":""ret11"",""field12"":""ret12"",""field13"":""ret13"",""field14"":""ret14""}}");
         }
 
         [Fact]
@@ -85,6 +85,10 @@ namespace Execution
             public static IDataLoaderResult<string> Field8() => new SimpleDataLoader<string>(c => Task.FromResult("ret8"));
             public string Field9() => "ret9";
             public string Field10() => "ret10";
+            public async Task<string> Field11() { await Task.Yield(); return "ret11"; }
+            public async Task<string> Field12() { await Task.Yield(); return "ret12"; }
+            public async Task<string> Field13() { await Task.Yield(); return "ret13"; }
+            public static async Task<IDataLoaderResult<string>> Field14() { await Task.Yield(); return new SimpleDataLoader<string>(c => Task.FromResult("ret14")); }
         }
     }
 }
