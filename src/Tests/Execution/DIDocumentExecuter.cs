@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using GraphQL.DI;
 using GraphQL.Execution;
 using GraphQL.Language.AST;
@@ -84,7 +85,7 @@ namespace Execution
         [Fact]
         public void NullServiceProviderThrows()
         {
-            Should.Throw<ArgumentNullException>(() => new DIDocumentExecuter((IServiceProvider)null));
+            Should.Throw<ArgumentNullException>(() => new DIDocumentExecuter((IServiceProvider)null)).ParamName.ShouldBe("serviceProvider");
         }
 
         private class MockDIDocumentExecuter : DIDocumentExecuter

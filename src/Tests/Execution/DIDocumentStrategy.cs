@@ -1,7 +1,9 @@
+using System;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.DataLoader;
 using GraphQL.DI;
+using GraphQL.Execution;
 using GraphQL.SystemTextJson;
 using GraphQL.Types;
 using Shouldly;
@@ -18,13 +20,27 @@ namespace Execution
         [Fact]
         public async Task ItRuns()
         {
-            var actual = await RunQuery("{field1,field2,field3,field4,field5,field6,field7,field8}");
-            actual.ShouldBe(@"{""data"":{""field1"":""ret1"",""field2"":""ret2"",""field3"":""ret3"",""field4"":""ret4"",""field5"":""ret5"",""field6"":""ret6"",""field7"":""ret7"",""field8"":""ret8""}}");
+            var actual = await RunQuery("{field1,field2,field3,field4,field5,field6,field7,field8,field9,field10}");
+            actual.ShouldBe(@"{""data"":{""field1"":""ret1"",""field2"":""ret2"",""field3"":""ret3"",""field4"":""ret4"",""field5"":""ret5"",""field6"":""ret6"",""field7"":""ret7"",""field8"":""ret8"",""field9"":""ret9"",""field10"":""ret10""}}");
+        }
+
+        [Fact]
+        public async Task InvalidMaxTasksThrows()
+        {
+            await Should.ThrowAsync<InvalidOperationException>(async () => {
+                var de = new DIExecutionStrategy();
+                var ret = await _executer.ExecuteAsync(new ExecutionOptions {
+                    Query = "{field1}",
+                    Schema = _schema,
+                    MaxParallelExecutionCount = -1,
+                    ThrowOnUnhandledException = true,
+                });
+            });
         }
 
         private async Task<string> RunQuery(string query)
         {
-            var result = await _executer.ExecuteAsync(new GraphQL.ExecutionOptions {
+            var result = await _executer.ExecuteAsync(new ExecutionOptions {
                 Query = query,
                 Schema = _schema,
                 MaxParallelExecutionCount = 2,
@@ -51,6 +67,8 @@ namespace Execution
             public static async Task<string> Field6() { await Task.Yield(); return "ret6"; }
             public static async Task<string> Field7() { await Task.Yield(); return "ret7"; }
             public static IDataLoaderResult<string> Field8() => new SimpleDataLoader<string>(c => Task.FromResult("ret8"));
+            public string Field9() => "ret9";
+            public string Field10() => "ret10";
         }
     }
 }
