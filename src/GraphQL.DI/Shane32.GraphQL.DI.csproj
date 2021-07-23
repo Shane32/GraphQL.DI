@@ -6,6 +6,7 @@
       An extension to the graphql-dotnet library to allow easy creation of GraphQL endpoints in a style similar to ASP.Net Core controllers
     </Description>
     <Nullable>enable</Nullable>
+    <RootNamespace>GraphQL.DI</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
