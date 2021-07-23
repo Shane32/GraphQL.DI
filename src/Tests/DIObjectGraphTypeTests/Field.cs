@@ -336,6 +336,20 @@ namespace DIObjectGraphTypeTests
         }
 
         [Fact]
+        public void IdTypeNonNull()
+        {
+            Configure<CIdTypeNonNull, object>();
+            VerifyField("Field1", typeof(NonNullGraphType<IdGraphType>), false, 2);
+            Verify(false);
+        }
+
+        public class CIdTypeNonNull : DIObjectGraphBase<object>
+        {
+            [Id]
+            public static int Field1() => 2;
+        }
+
+        [Fact]
         public async Task Concurrent()
         {
             Configure<CConcurrent, object>();

@@ -170,6 +170,20 @@ namespace DIObjectGraphTypeTests
         }
 
         [Fact]
+        public void IdNonNull()
+        {
+            Configure<CIdGraphType2, object>();
+            VerifyFieldArgument("Field1", "arg", typeof(NonNullGraphType<IdGraphType>), "3");
+            VerifyField("Field1", true, false, "3");
+            Verify(false);
+        }
+
+        public class CIdGraphType2 : DIObjectGraphBase
+        {
+            public static string Field1([Id] int arg) => arg.ToString();
+        }
+
+        [Fact]
         public void CancellationToken()
         {
             using var cts = new CancellationTokenSource();
