@@ -126,14 +126,61 @@ namespace DIObjectGraphTypeTests
         public void GraphType()
         {
             Configure<CGraphType, object>();
-            VerifyFieldArgument("Field1", "arg", typeof(StringGraphType), "hello");
+            VerifyFieldArgument("Field1", "arg", typeof(IdGraphType), "hello");
             VerifyField("Field1", true, false, "hello");
             Verify(false);
         }
 
         public class CGraphType : DIObjectGraphBase
         {
-            public static string Field1([GraphType(typeof(StringGraphType))] string arg) => arg;
+            public static string Field1([GraphType(typeof(IdGraphType))] string arg) => arg;
+        }
+
+        [Fact]
+        public void GraphTypeInherited()
+        {
+            Configure<CGraphTypeInherited, object>();
+            VerifyFieldArgument("Field1", "arg", typeof(IdGraphType), "hello");
+            VerifyField("Field1", true, false, "hello");
+            Verify(false);
+        }
+
+        public class CGraphTypeInherited : DIObjectGraphBase
+        {
+            public static string Field1([MyIdGraphType] string arg) => arg;
+        }
+
+        public class MyIdGraphTypeAttribute : GraphTypeAttribute
+        {
+            public MyIdGraphTypeAttribute() : base(typeof(IdGraphType)) { }
+        }
+
+        [Fact]
+        public void Id()
+        {
+            Configure<CIdGraphType, object>();
+            VerifyFieldArgument("Field1", "arg", typeof(IdGraphType), "hello");
+            VerifyField("Field1", true, false, "hello");
+            Verify(false);
+        }
+
+        public class CIdGraphType : DIObjectGraphBase
+        {
+            public static string Field1([Id] string arg) => arg;
+        }
+
+        [Fact]
+        public void IdNonNull()
+        {
+            Configure<CIdGraphType2, object>();
+            VerifyFieldArgument("Field1", "arg", typeof(NonNullGraphType<IdGraphType>), "3");
+            VerifyField("Field1", true, false, "3");
+            Verify(false);
+        }
+
+        public class CIdGraphType2 : DIObjectGraphBase
+        {
+            public static string Field1([Id] int arg) => arg.ToString();
         }
 
         [Fact]

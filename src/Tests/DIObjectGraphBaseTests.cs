@@ -12,16 +12,16 @@ using Moq;
 using Shouldly;
 using Xunit;
 
-namespace Tests
+namespace DIObjectGraphBaseTests
 {
-    public class DIObjectGraphBaseTests
+    public class Properties
     {
         private readonly DIObjectGraphBase _graph = new CTest();
-        private IResolveFieldContext _graphContext => (IResolveFieldContext)_graph;
+        private IResolveFieldContext _graphContext => _graph;
         private readonly Mock<IResolveFieldContext> _mockContext = new Mock<IResolveFieldContext>(MockBehavior.Strict);
         private IResolveFieldContext _context => _mockContext.Object;
 
-        public DIObjectGraphBaseTests()
+        public Properties()
         {
             ((IDIObjectGraphBase)_graph).Context = _context;
             ((IDIObjectGraphBase)_graph).Context.ShouldBe(_context);

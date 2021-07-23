@@ -209,7 +209,11 @@ namespace GraphQL.DI
                 if (graphType == null) {
                     //determine if the field is required
                     var isNullable = GetNullability(method);
-                    if (method.ReturnType.IsConstructedGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)) {
+                    //check if the field was specified to be an id graph type
+                    if (method.GetCustomAttribute<IdAttribute>() != null) {
+                        graphType = isNullable ? typeof(IdGraphType) : typeof(NonNullGraphType<IdGraphType>);
+                    }
+                    else if (method.ReturnType.IsConstructedGenericType && method.ReturnType.GetGenericTypeDefinition() == typeof(Task<>)) {
                         graphType = InferOutputGraphType(method.ReturnType.GetGenericArguments()[0], isNullable);
                     } else {
                         graphType = InferOutputGraphType(method.ReturnType, isNullable);
@@ -545,11 +549,18 @@ namespace GraphQL.DI
             //load the specified graph type
             var graphTypeAttribute = param.GetCustomAttribute<GraphTypeAttribute>();
             Type? graphType = graphTypeAttribute?.Type;
-            //if no specific graphtype set, pull from registered graph type list
+            //if no specific graphtype set, check for the Id attribute, or pull from registered graph type list
             if (graphType == null) {
                 //determine if this query argument is required
                 var nullable = GetNullability(method, param);
-                graphType = InferInputGraphType(param.ParameterType, nullable);
+                //check if the parameter was tagged as an ID graph type
+                if (param.GetCustomAttribute<IdAttribute>() != null) {
+                    graphType = nullable ? typeof(IdGraphType) : typeof(NonNullGraphType<IdGraphType>);
+                }
+                else {
+                    //infer the graph type
+                    graphType = InferInputGraphType(param.ParameterType, nullable);
+                }
             }
 
             //construct the query argument

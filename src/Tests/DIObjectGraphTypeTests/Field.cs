@@ -292,14 +292,61 @@ namespace DIObjectGraphTypeTests
         public void CustomType()
         {
             Configure<CCustomType, object>();
-            VerifyField("Field1", typeof(StringGraphType), false, "hello");
+            VerifyField("Field1", typeof(IdGraphType), false, "hello");
             Verify(false);
         }
 
         public class CCustomType : DIObjectGraphBase<object>
         {
-            [GraphType(typeof(StringGraphType))]
+            [GraphType(typeof(IdGraphType))]
             public static string Field1() => "hello";
+        }
+
+        [Fact]
+        public void InheritedCustomType()
+        {
+            Configure<CInheritedCustomType, object>();
+            VerifyField("Field1", typeof(IdGraphType), false, "hello");
+            Verify(false);
+        }
+
+        public class CInheritedCustomType : DIObjectGraphBase<object>
+        {
+            [MyIdGraphType]
+            public static string Field1() => "hello";
+        }
+
+        public class MyIdGraphTypeAttribute : GraphTypeAttribute
+        {
+            public MyIdGraphTypeAttribute() : base(typeof(IdGraphType)) { }
+        }
+
+        [Fact]
+        public void IdType()
+        {
+            Configure<CIdType, object>();
+            VerifyField("Field1", typeof(IdGraphType), false, "hello");
+            Verify(false);
+        }
+
+        public class CIdType : DIObjectGraphBase<object>
+        {
+            [Id]
+            public static string Field1() => "hello";
+        }
+
+        [Fact]
+        public void IdTypeNonNull()
+        {
+            Configure<CIdTypeNonNull, object>();
+            VerifyField("Field1", typeof(NonNullGraphType<IdGraphType>), false, 2);
+            Verify(false);
+        }
+
+        public class CIdTypeNonNull : DIObjectGraphBase<object>
+        {
+            [Id]
+            public static int Field1() => 2;
         }
 
         [Fact]
