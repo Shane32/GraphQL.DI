@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using GraphQL;
 using GraphQL.DataLoader;
@@ -6,6 +7,7 @@ using GraphQL.DI;
 using GraphQL.Execution;
 using GraphQL.SystemTextJson;
 using GraphQL.Types;
+using Moq;
 using Shouldly;
 using Xunit;
 
@@ -33,9 +35,22 @@ namespace Execution
                     Query = "{field1}",
                     Schema = _schema,
                     MaxParallelExecutionCount = -1,
+                    RequestServices = Mock.Of<IServiceProvider>(),
                     ThrowOnUnhandledException = true,
                 });
             });
+        }
+
+        [Fact]
+        public async Task NullRequestServicesThrows()
+        {
+            var document = GraphQL.Language.CoreToVanillaConverter.Convert(GraphQLParser.Parser.Parse("{field1}"));
+            var e = await Should.ThrowAsync<ArgumentNullException>(async () => await new DIExecutionStrategy().ExecuteAsync(new ExecutionContext() {
+                Schema = _schema,
+                Document = document,
+                Operation = document.Operations.First(),
+            }));
+            e.ParamName.ShouldBe("context.RequestServices");
         }
 
         private async Task<string> RunQuery(string query)
@@ -44,6 +59,7 @@ namespace Execution
                 Query = query,
                 Schema = _schema,
                 MaxParallelExecutionCount = 2,
+                RequestServices = Mock.Of<IServiceProvider>(),
             });
             result.Errors.ShouldBeNull();
             return await _writer.WriteToStringAsync(result);

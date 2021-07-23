@@ -5,6 +5,7 @@ using GraphQL.Language.AST;
 using GraphQL.Validation;
 using GraphQL.Validation.Complexity;
 using Microsoft.Extensions.DependencyInjection;
+using System.Threading.Tasks;
 
 namespace GraphQL.DI
 {
@@ -82,5 +83,11 @@ namespace GraphQL.DI
             }
         }
 
+        /// <inheritdoc/>
+        public override Task<ExecutionResult> ExecuteAsync(ExecutionOptions options) {
+            if (options.RequestServices == null)
+                throw new ArgumentNullException($"{nameof(options)}.{nameof(ExecutionOptions.RequestServices)}");
+            return base.ExecuteAsync(options);
+        }
     }
 }

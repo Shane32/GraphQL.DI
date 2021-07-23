@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using GraphQL;
 using GraphQL.DI;
 using GraphQL.Execution;
 using GraphQL.Language.AST;
@@ -13,6 +14,13 @@ namespace Execution
 {
     public class DIDocumentExecuterTests
     {
+        [Fact]
+        public async Task NullRequestServicesThrows()
+        {
+            var e = await Should.ThrowAsync<ArgumentNullException>(async () => await new DIDocumentExecuter().ExecuteAsync(new ExecutionOptions()));
+            e.ParamName.ShouldBe("options.RequestServices");
+        }
+
         [Fact]
         public void CreateWithDefaults()
         {

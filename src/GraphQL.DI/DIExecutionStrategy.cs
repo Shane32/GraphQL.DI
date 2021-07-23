@@ -19,6 +19,9 @@ namespace GraphQL.DI
         /// <inheritdoc/>
         protected override async Task ExecuteNodeTreeAsync(ExecutionContext context, ObjectExecutionNode rootNode)
         {
+            if (context.RequestServices == null)
+                throw new ArgumentNullException($"{nameof(context)}.{nameof(ExecutionContext.RequestServices)}");
+
             Func<Task, ExecutionNode, Task<ExecutionNode>> taskFunc = async (task, node) => { await task; return node; };
 
             var nodes = new Stack<ExecutionNode>(); //synchronous nodes to be executed
