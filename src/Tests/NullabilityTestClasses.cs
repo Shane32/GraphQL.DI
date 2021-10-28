@@ -1,4 +1,5 @@
 #nullable enable
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using GraphQL.DataLoader;
 using GraphQL.DI;
@@ -107,5 +108,17 @@ namespace Tests.NullabilityTestClasses
         public static Task<string?> Field2() => null!;
         public static Task<string>? Field3() => null!;
         public static Task<string?>? Field4() => null!;
+    }
+
+    public class NullableClass16
+    {
+        public static string Field1() => "test";
+        public static string Field2() => "test";
+
+        public class NestedClass1
+        {
+            public static string Field1() => "test";
+            public static string Field2() => "test";
+        }
     }
 }
