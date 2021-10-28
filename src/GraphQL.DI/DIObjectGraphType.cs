@@ -304,17 +304,10 @@ namespace GraphQL.DI
             var nullable = Nullability.Unknown;
 
             // check the parent type first to see if there's a nullable context attribute set for it
-            var parentType = method.DeclaringType;
-            var attribute = parentType.CustomAttributes.FirstOrDefault(x =>
-                x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
-                x.ConstructorArguments.Count == 1 &&
-                x.ConstructorArguments[0].ArgumentType == typeof(byte));
-            if (attribute != null) {
-                nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
-            }
+            CheckDeclaringType(method.DeclaringType);
 
             // now check the method to see if there's a nullable context attribute set for it
-            attribute = method.CustomAttributes.FirstOrDefault(x =>
+            var attribute = method.CustomAttributes.FirstOrDefault(x =>
                 x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
                 x.ConstructorArguments.Count == 1 &&
                 x.ConstructorArguments[0].ArgumentType == typeof(byte));
@@ -323,6 +316,19 @@ namespace GraphQL.DI
             }
 
             return nullable;
+
+            void CheckDeclaringType(Type parentType)
+            {
+                if (parentType.DeclaringType != null)
+                    CheckDeclaringType(parentType.DeclaringType);
+                var attribute = parentType.CustomAttributes.FirstOrDefault(x =>
+                    x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
+                    x.ConstructorArguments.Count == 1 &&
+                    x.ConstructorArguments[0].ArgumentType == typeof(byte));
+                if (attribute != null) {
+                    nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
+                }
+            }
         }
 
         /// <summary>

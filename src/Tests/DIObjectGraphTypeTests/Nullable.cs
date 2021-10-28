@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using GraphQL.DI;
@@ -16,20 +17,22 @@ namespace DIObjectGraphTypeTests
         //  tests may not be testing the anticipated scenarios
         //Method and Argument should always pass
         [Theory]
-        [InlineData(typeof(NullableClass1), 1)] //default not nullable
-        [InlineData(typeof(NullableClass2), 2)] //default nullable
-        [InlineData(typeof(NullableClass5), null)]
-        [InlineData(typeof(NullableClass6), null)]
-        [InlineData(typeof(NullableClass7), 1)] //default not nullable
-        [InlineData(typeof(NullableClass8), 2)] //default nullable
-        [InlineData(typeof(NullableClass9), null)]
-        [InlineData(typeof(NullableClass10), null)]
-        [InlineData(typeof(NullableClass11), 1)] //default not nullable
-        [InlineData(typeof(NullableClass12), null)]
-        [InlineData(typeof(NullableClass13), 1)] //default not nullable
-        [InlineData(typeof(NullableClass14), 2)] //default nullable
-        [InlineData(typeof(NullableClass15), null)]
-        public void VerifyTestClass(Type type, int? nullableContext)
+        [InlineData(typeof(NullableClass1), 1, 0)] //default not nullable
+        [InlineData(typeof(NullableClass2), 2, 0)] //default nullable
+        [InlineData(typeof(NullableClass5), null, null)]
+        [InlineData(typeof(NullableClass6), null, null)]
+        [InlineData(typeof(NullableClass7), 1, 0)] //default not nullable
+        [InlineData(typeof(NullableClass8), 2, 0)] //default nullable
+        [InlineData(typeof(NullableClass9), null, null)]
+        [InlineData(typeof(NullableClass10), null, null)]
+        [InlineData(typeof(NullableClass11), 1, 0)] //default not nullable
+        [InlineData(typeof(NullableClass12), null, null)]
+        [InlineData(typeof(NullableClass13), 1, 0)] //default not nullable
+        [InlineData(typeof(NullableClass14), 2, 0)] //default nullable
+        [InlineData(typeof(NullableClass15), null, null)]
+        [InlineData(typeof(NullableClass16), 1, 0)]
+        [InlineData(typeof(NullableClass16.NestedClass1), null, 0)]
+        public void VerifyTestClass(Type type, int? nullableContext, int? nullable)
         {
             var actualHasNullableContext = type.CustomAttributes.FirstOrDefault(
                 x => x.AttributeType.Name == "NullableContextAttribute");
@@ -38,6 +41,15 @@ namespace DIObjectGraphTypeTests
             } else {
                 actualHasNullableContext.ShouldNotBeNull();
                 actualHasNullableContext.ConstructorArguments[0].Value.ShouldBe(nullableContext);
+            }
+
+            var actualHasNullable = type.CustomAttributes.FirstOrDefault(
+                x => x.AttributeType.Name == "NullableAttribute");
+            if (nullable == null) {
+                actualHasNullable.ShouldBeNull();
+            } else {
+                actualHasNullable.ShouldNotBeNull();
+                actualHasNullable.ConstructorArguments[0].Value.ShouldBe(nullable);
             }
         }
 
@@ -86,6 +98,10 @@ namespace DIObjectGraphTypeTests
         [InlineData(typeof(NullableClass15), "Field2", true, false)]
         [InlineData(typeof(NullableClass15), "Field3", true, false)]
         [InlineData(typeof(NullableClass15), "Field4", false, true)]
+        [InlineData(typeof(NullableClass16), "Field1", false, false)]
+        [InlineData(typeof(NullableClass16), "Field2", false, false)]
+        [InlineData(typeof(NullableClass16.NestedClass1), "Field1", false, false)]
+        [InlineData(typeof(NullableClass16.NestedClass1), "Field2", false, false)]
         public void VerifyTestMethod(Type type, string methodName, bool hasNullable, bool hasNullableContext)
         {
             var method = type.GetMethod(methodName);
@@ -171,6 +187,10 @@ namespace DIObjectGraphTypeTests
         [InlineData(typeof(NullableClass15), "Field2", true)]
         [InlineData(typeof(NullableClass15), "Field3", true)]
         [InlineData(typeof(NullableClass15), "Field4", true)]
+        [InlineData(typeof(NullableClass16), "Field1", false)]
+        [InlineData(typeof(NullableClass16), "Field2", false)]
+        [InlineData(typeof(NullableClass16.NestedClass1), "Field1", false)]
+        [InlineData(typeof(NullableClass16.NestedClass1), "Field2", false)]
         public void Method(Type type, string methodName, bool expected)
         {
             var method = type.GetMethod(methodName);
