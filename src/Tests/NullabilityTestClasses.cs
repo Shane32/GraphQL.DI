@@ -114,11 +114,20 @@ namespace Tests.NullabilityTestClasses
     {
         public static string Field1() => "test";
         public static string Field2() => "test";
+        public static string? Field3() => "test";
 
         public class NestedClass1
         {
             public static string Field1() => "test";
             public static string Field2() => "test";
+            public static string? Field3() => "test";
         }
+    }
+
+    public class NullableClass17
+    {
+        public static Task<string> Field1() => null!;
+        public static Task<string> Field2() => null!;
+        public static Task<string?> Field3() => null!;
     }
 }
