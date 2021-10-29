@@ -32,6 +32,7 @@ namespace DIObjectGraphTypeTests
         [InlineData(typeof(NullableClass15), null, null)]
         [InlineData(typeof(NullableClass16), 1, 0)]
         [InlineData(typeof(NullableClass16.NestedClass1), null, 0)]
+        [InlineData(typeof(NullableClass17), 1, 0)]
         public void VerifyTestClass(Type type, int? nullableContext, int? nullable)
         {
             var actualHasNullableContext = type.CustomAttributes.FirstOrDefault(
@@ -100,8 +101,13 @@ namespace DIObjectGraphTypeTests
         [InlineData(typeof(NullableClass15), "Field4", false, true)]
         [InlineData(typeof(NullableClass16), "Field1", false, false)]
         [InlineData(typeof(NullableClass16), "Field2", false, false)]
+        [InlineData(typeof(NullableClass16), "Field3", false, true)]
         [InlineData(typeof(NullableClass16.NestedClass1), "Field1", false, false)]
         [InlineData(typeof(NullableClass16.NestedClass1), "Field2", false, false)]
+        [InlineData(typeof(NullableClass16.NestedClass1), "Field3", false, true)]
+        [InlineData(typeof(NullableClass17), "Field1", false, false)]
+        [InlineData(typeof(NullableClass17), "Field2", false, false)]
+        [InlineData(typeof(NullableClass17), "Field3", true, false)]
         public void VerifyTestMethod(Type type, string methodName, bool hasNullable, bool hasNullableContext)
         {
             var method = type.GetMethod(methodName);
@@ -189,8 +195,13 @@ namespace DIObjectGraphTypeTests
         [InlineData(typeof(NullableClass15), "Field4", true)]
         [InlineData(typeof(NullableClass16), "Field1", false)]
         [InlineData(typeof(NullableClass16), "Field2", false)]
+        [InlineData(typeof(NullableClass16), "Field3", true)]
         [InlineData(typeof(NullableClass16.NestedClass1), "Field1", false)]
         [InlineData(typeof(NullableClass16.NestedClass1), "Field2", false)]
+        [InlineData(typeof(NullableClass16.NestedClass1), "Field3", true)]
+        [InlineData(typeof(NullableClass17), "Field1", false)]
+        [InlineData(typeof(NullableClass17), "Field2", false)]
+        [InlineData(typeof(NullableClass17), "Field3", true)]
         public void Method(Type type, string methodName, bool expected)
         {
             var method = type.GetMethod(methodName);

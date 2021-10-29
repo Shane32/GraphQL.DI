@@ -266,7 +266,7 @@ namespace GraphQL.DI
                 nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
             }
 
-            var nullabilityBytes = attribute?.ConstructorArguments[0].Value as byte[];
+            var nullabilityBytes = attribute?.ConstructorArguments[0].Value as IList<CustomAttributeTypedArgument>;
             var index = 0;
             nullable = Consider(method.ReturnType);
             return nullable != Nullability.NonNullable;
@@ -278,7 +278,7 @@ namespace GraphQL.DI
                     return Nullability.Nullable;
                 if (t.IsValueType)
                     return Nullability.NonNullable;
-                if ((nullabilityBytes != null && nullabilityBytes[index] == (byte)Nullability.Nullable) || (nullabilityBytes == null && nullable == Nullability.Nullable))
+                if ((nullabilityBytes != null && (byte)nullabilityBytes[index].Value == (byte)Nullability.Nullable) || (nullabilityBytes == null && nullable == Nullability.Nullable))
                     return Nullability.Nullable;
                 if (g == typeof(IDataLoaderResult<>) || g == typeof(Task<>)) {
                     index++;
@@ -287,7 +287,7 @@ namespace GraphQL.DI
                 if (t == typeof(IDataLoaderResult))
                     return Nullability.Nullable;
                 if (nullabilityBytes != null)
-                    return (Nullability)nullabilityBytes[index];
+                    return (Nullability)(byte)nullabilityBytes[index].Value;
                 return nullable;
             }
         }
