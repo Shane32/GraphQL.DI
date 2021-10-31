@@ -221,11 +221,19 @@ namespace DIObjectGraphTypeTests
         [InlineData(typeof(NullableClass13), "Field2", "arg3", false)]
         [InlineData(typeof(NullableClass13), "Field2", "arg4", true)]
         [InlineData(typeof(NullableClass13), "Field2", "arg5", true)]
+        [InlineData(typeof(NullableClass13), "Field2", "arg6", false)]
+        [InlineData(typeof(NullableClass13), "Field2", "arg7", false)]
+        [InlineData(typeof(NullableClass13), "Field2", "arg8", true)]
+        [InlineData(typeof(NullableClass13), "Field2", "arg9", true)]
         [InlineData(typeof(NullableClass14), "Field2", "arg1", true)]
         [InlineData(typeof(NullableClass14), "Field2", "arg2", false)]
         [InlineData(typeof(NullableClass14), "Field2", "arg3", false)]
         [InlineData(typeof(NullableClass14), "Field2", "arg4", true)]
         [InlineData(typeof(NullableClass14), "Field2", "arg5", false)]
+        [InlineData(typeof(NullableClass14), "Field2", "arg6", false)]
+        [InlineData(typeof(NullableClass14), "Field2", "arg7", false)]
+        [InlineData(typeof(NullableClass14), "Field2", "arg8", true)]
+        [InlineData(typeof(NullableClass14), "Field2", "arg9", true)]
         public void Argument(Type type, string methodName, string argumentName, bool expected)
         {
             var method = type.GetMethod(methodName);

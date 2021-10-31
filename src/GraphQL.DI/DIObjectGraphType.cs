@@ -359,11 +359,11 @@ namespace GraphQL.DI
                 nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
             }
 
-            var nullabilityBytes = attribute?.ConstructorArguments[0].Value as byte[];
-            if ((nullabilityBytes != null && nullabilityBytes[0] == (byte)Nullability.Nullable) || (nullabilityBytes == null && nullable == Nullability.Nullable))
+            var nullabilityBytes = attribute?.ConstructorArguments[0].Value as IList<CustomAttributeTypedArgument>;
+            if ((nullabilityBytes != null && (byte)nullabilityBytes[0].Value == (byte)Nullability.Nullable) || (nullabilityBytes == null && nullable == Nullability.Nullable))
                 return true;
             if (nullabilityBytes != null)
-                return (Nullability)nullabilityBytes[0] != Nullability.NonNullable;
+                return (Nullability)(byte)nullabilityBytes[0].Value != Nullability.NonNullable;
             return nullable != Nullability.NonNullable;
         }
 
