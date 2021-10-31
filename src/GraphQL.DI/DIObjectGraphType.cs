@@ -292,11 +292,95 @@ namespace GraphQL.DI
             }
         }
 
-        private enum Nullability : byte
+        private (Nullability, IList<CustomAttributeTypedArgument>?) GetMethodParameterNullability(MethodInfo method, ParameterInfo parameter)
         {
-            Unknown = 0,
-            NonNullable = 1,
-            Nullable = 2,
+            Nullability nullableContext = GetMethodDefaultNullability(method);
+
+            foreach (var attribute in parameter.CustomAttributes) {
+                if (attribute.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute" && attribute.ConstructorArguments.Count == 1) {
+                    var argType = attribute.ConstructorArguments[0].ArgumentType;
+                    if (argType == typeof(byte)) {
+                        return ((Nullability)(byte)attribute.ConstructorArguments[0].Value, null);
+                    } else if (argType == typeof(byte[])) {
+                        return (nullableContext, (IList<CustomAttributeTypedArgument>)attribute.ConstructorArguments[0].Value);
+                    } else {
+                        throw new ApplicationException($"Could not interpret NullableAttribute on {method.Name}.{parameter.Name}.");
+                    }
+                }
+            }
+            return (nullableContext, null);
+        }
+        /// <summary>
+        /// Returns a boolean indicating if the return value of a method is nullable.
+        /// <para>
+        /// See <seealso href="https://github.com/dotnet/roslyn/blob/main/docs/features/nullable-metadata.md"/>.
+        /// </para>
+        /// </summary>
+        protected virtual IEnumerable<(Type, Nullability)> GetNullability2(MethodInfo method)
+        {
+            var (nullableContext, nullabilityBytes) = GetMethodParameterNullability(method, method.ReturnParameter);
+            var list = new List<(Type, Nullability)>();
+            var index = 0;
+            Consider(method.ReturnType, false);
+            return list;
+
+            void Consider(Type t, bool nullableValueType)
+            {
+                if (t.IsValueType) {
+                    if (t.IsGenericType) {
+                        var g = t.GetGenericTypeDefinition();
+                        if (g == typeof(Nullable<>)) {
+                            //do not add Nullable<T> to the list but rather just add underlying type
+                            Consider(t.GenericTypeArguments[0], true);
+                        }
+                        else if (g.BaseType == typeof(ValueTuple)) {
+                            list.Add((t, nullableValueType ? Nullability.Nullable : Nullability.NonNullable));
+                            for (int i = 0; i < t.GenericTypeArguments.Length; i++) {
+                                Consider(t.GenericTypeArguments[i], false);
+                            }
+                        } else {
+                            index++; //generic structs that are not tuples or Nullable<T> will contain a 0 in the array
+                            list.Add((t, nullableValueType ? Nullability.Nullable : Nullability.NonNullable));
+                            for (int i = 0; i < t.GenericTypeArguments.Length; i++) {
+                                Consider(t.GenericTypeArguments[i], false);
+                            }
+                        }
+                    } else {
+                        //do not increment index for concrete value types
+                        list.Add((t, nullableValueType ? Nullability.Nullable : Nullability.NonNullable));
+                    }
+                    return;
+                }
+                //pull the nullability flag from the array and increment index
+                var nullable = nullabilityBytes != null ? (Nullability)(byte)nullabilityBytes[index++].Value : nullableContext;
+                list.Add((t, nullable));
+
+                if (t.IsArray) {
+                    Consider(t.GetElementType(), false);
+                } else if (t.IsGenericType) {
+                    for (int i = 0; i < t.GenericTypeArguments.Length; i++) {
+                        Consider(t.GenericTypeArguments[i], false);
+                    }
+                }
+
+
+                //var g = t.IsGenericType ? t.GetGenericTypeDefinition() : null;
+                //if (g == typeof(Nullable<>))
+                //    return Nullability.Nullable;
+                //if (t.IsValueType)
+                //    return Nullability.NonNullable;
+                //if ((nullabilityBytes != null && (byte)nullabilityBytes[index].Value == (byte)Nullability.Nullable) || (nullabilityBytes == null && nullableContext == Nullability.Nullable))
+                //    return Nullability.Nullable;
+                //if (g == typeof(IDataLoaderResult<>) || g == typeof(Task<>)) {
+                //    index++;
+                //    return Consider(t.GenericTypeArguments[0]);
+                //}
+                //if (t == typeof(IDataLoaderResult))
+                //    return Nullability.Nullable;
+                //if (nullabilityBytes != null)
+                //    return (Nullability)(byte)nullabilityBytes[index].Value;
+                //return nullableContext;
+            }
         }
 
         private Nullability GetMethodDefaultNullability(MethodInfo method)
@@ -370,7 +454,7 @@ namespace GraphQL.DI
         /// <summary>
         /// Returns a GraphQL input type for a specified CLR type
         /// </summary>
-        protected virtual Type InferInputGraphType(Type type, bool nullable)
+        protected virtual Type InferInputGraphType(Type type, bool nullable, bool isList, bool isNullableList)
         {
             return type.GetGraphTypeFromType(nullable, TypeMappingMode.InputType);
         }
