@@ -93,13 +93,13 @@ namespace Tests.NullabilityTestClasses
     public class NullableClass13
     {
         public static string Field1() => "test";
-        public static string Field2(string arg1, string? arg2, int arg3, int? arg4, [Optional] string arg5) => "test";
+        public static string Field2(string arg1, string? arg2, int arg3, int? arg4, [Optional] string arg5, IEnumerable<string> arg6, IEnumerable<string?> arg7, IEnumerable<string>? arg8, IEnumerable<string?>? arg9) => "test";
     }
 
     public class NullableClass14
     {
         public static string? Field1() => "test";
-        public static string? Field2(string? arg1, string arg2, int arg3, int? arg4, [Required] string? arg5) => "test";
+        public static string? Field2(string? arg1, string arg2, int arg3, int? arg4, [Required] string? arg5, IEnumerable<string> arg6, IEnumerable<string?> arg7, IEnumerable<string>? arg8, IEnumerable<string?>? arg9) => "test";
     }
 
     public class NullableClass15
