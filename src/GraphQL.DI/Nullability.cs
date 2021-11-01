@@ -4,7 +4,7 @@ using System.Text;
 
 namespace GraphQL.DI
 {
-    internal enum Nullability : byte
+    public enum Nullability : byte
     {
         Unknown = 0,
         NonNullable = 1,
