@@ -62,7 +62,7 @@ namespace GraphQL.DI
     /// This is a required base type of all DI-created graph types. <see cref="DIObjectGraphBase{TSource}"/> may be
     /// used when the <see cref="IResolveFieldContext.Source"/> type is not <see cref="object"/>.
     /// </summary>
-    public abstract class DIObjectGraphBase : DIObjectGraphBase<object>, IDIObjectGraphBase<object>
+    public abstract class DIObjectGraphBase : DIObjectGraphBase<object>
     {
     }
 }

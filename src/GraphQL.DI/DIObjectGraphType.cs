@@ -366,6 +366,12 @@ namespace GraphQL.DI
             }
             if (member.IsDefined(typeof(IdAttribute), false))
                 typeInformation.GraphType = typeof(IdGraphType);
+            else if (member.GetCustomAttributes(typeof(DIGraphAttribute), false).SingleOrDefault() is DIGraphAttribute diGraphAttribute) {
+                var iface = diGraphAttribute.GraphBaseType.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IDIObjectGraphBase<>));
+                if (iface == null)
+                    throw new InvalidOperationException($"Method '{typeInformation.ParameterInfo.Member.DeclaringType.Name}.{typeInformation.ParameterInfo.Member.Name}' is marked with [DIGraph] specifying type '{diGraphAttribute.GraphBaseType.Name}' which does not inherit {nameof(IDIObjectGraphBase)}<T>.");
+                typeInformation.GraphType = typeof(DIObjectGraphType<,>).MakeGenericType(diGraphAttribute.GraphBaseType, iface.GetGenericArguments()[0]);
+            }
             return typeInformation;
         }
 
