@@ -267,13 +267,13 @@ namespace DIObjectGraphTypeTests
         public void Method_GetNullability(Type type, string methodName, Type expectedType, Nullability expectedNullability, Type expectedType2 = null, Nullability? expectedNullability2 = null)
         {
             var method = type.GetMethod(methodName);
-            var actual = TestGraphType.Instance.GetNullability(method.ReturnParameter).ToList();
+            var actual = method.ReturnParameter.GetNullabilityInformation().ToList();
             actual.Count.ShouldBe(expectedType2 == null ? 1 : 2);
-            actual[0].Item1.ShouldBe(expectedType);
-            actual[0].Item2.ShouldBe(expectedNullability);
+            actual[0].Type.ShouldBe(expectedType);
+            actual[0].Nullable.ShouldBe(expectedNullability);
             if (expectedType2 != null) {
-                actual[1].Item1.ShouldBe(expectedType2);
-                actual[1].Item2.ShouldBe(expectedNullability2.Value);
+                actual[1].Type.ShouldBe(expectedType2);
+                actual[1].Nullable.ShouldBe(expectedNullability2.Value);
             }
         }
 
@@ -347,7 +347,7 @@ namespace DIObjectGraphTypeTests
         public void Method_GetNullability_Class18(string methodName, List<(Type, Nullability)> expected)
         {
             var method = typeof(NullableClass18<>).GetMethod(methodName).ShouldNotBeNull();
-            var actual = TestGraphType.Instance.GetNullability(method.ReturnParameter).ToList();
+            var actual = method.ReturnParameter.GetNullabilityInformation().ToList();
             expected.ShouldBe(actual);
         }
 
@@ -471,13 +471,13 @@ namespace DIObjectGraphTypeTests
         {
             var method = type.GetMethod(methodName);
             var argument = method.GetParameters().Single(x => x.Name == argumentName);
-            var actual = TestGraphType.Instance.GetNullability(argument).ToList();
+            var actual = argument.GetNullabilityInformation().ToList();
             actual.Count.ShouldBe(expectedType2 == null ? 1 : 2);
-            actual[0].Item1.ShouldBe(expectedType);
-            actual[0].Item2.ShouldBe(expectedNullability);
+            actual[0].Type.ShouldBe(expectedType);
+            actual[0].Nullable.ShouldBe(expectedNullability);
             if (expectedType2 != null) {
-                actual[1].Item1.ShouldBe(expectedType2);
-                actual[1].Item2.ShouldBe(expectedNullability2.Value);
+                actual[1].Type.ShouldBe(expectedType2);
+                actual[1].Nullable.ShouldBe(expectedNullability2.Value);
             }
         }
 
@@ -529,7 +529,6 @@ namespace DIObjectGraphTypeTests
         private class TestGraphType : DIObjectGraphType<TestClass>
         {
             public static TestGraphType Instance = new();
-            public new IEnumerable<(Type, Nullability)> GetNullability(ParameterInfo parameterInfo) => base.GetNullability(parameterInfo);
             public new TypeInformation GetTypeInformation(ParameterInfo parameterInfo, bool isInputArgument) => base.GetTypeInformation(parameterInfo, isInputArgument);
             public new TypeInformation ApplyAttributes(TypeInformation typeInformation) => base.ApplyAttributes(typeInformation);
         }

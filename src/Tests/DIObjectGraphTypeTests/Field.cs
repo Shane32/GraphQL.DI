@@ -591,6 +591,19 @@ namespace DIObjectGraphTypeTests
         }
 
         [Fact]
+        public void Ignore()
+        {
+            Configure<CIgnore, object>();
+            _graphType.Fields.Find("Field1").ShouldBeNull();
+        }
+
+        public class CIgnore : DIObjectGraphBase<object>
+        {
+            [Ignore]
+            public static string Field1() => "hello";
+        }
+
+        [Fact]
         public void AddsMetadata()
         {
             Configure<CAddsMetadata, object>();
