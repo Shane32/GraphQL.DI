@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using GraphQL.DataLoader;
 using GraphQL.DI;
 
-namespace Tests.NullabilityTestClasses
+namespace NullableTests
 {
     public class NullableClass1
     {
@@ -186,5 +186,15 @@ namespace Tests.NullabilityTestClasses
         public static Task<IDataLoaderResult<string[]>> Field16() => null!;
         public static object Field17() => null!;
         public static string Field18(string arg1 = "test", List<string> arg2 = null!, object arg3 = null!, object[] arg4 = null!) => null!;
+    }
+
+    public class NullableClass20
+    {
+        public static int Field1 => 0;
+        public static string Field2 => null!;
+        public static string? Field3 => null;
+        public static List<string?> Field4 => null!;
+        public static int? Field5 => null;
+        public static string Field6 => null!;
     }
 }
