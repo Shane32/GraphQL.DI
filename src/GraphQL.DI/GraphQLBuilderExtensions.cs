@@ -59,17 +59,13 @@ namespace GraphQL.DI
                 .Select<(Type DIGraphType, Type? SourceType), (Type ClrType, Type GraphType)>(x => (x.SourceType!, typeof(DIObjectGraphType<,>).MakeGenericType(x.DIGraphType, x.SourceType!)))
                 .ToList();
 
+            if (types.Count == 0)
+                return builder;
+
             builder.ConfigureSchema(schema => {
+                var existingMappings = new HashSet<Type>(schema.TypeMappings.Where(x => x.graphType.IsOutputType()).Select(x => x.clrType));
                 foreach (var type in types) {
-                    //equivalent to TryRegisterTypeMapping (if such a method existed)
-                    var mapped = false;
-                    foreach (var mapping in schema.TypeMappings) {
-                        if (type.ClrType == mapping.clrType && mapping.graphType.IsOutputType()) {
-                            mapped = true;
-                            break;
-                        }
-                    }
-                    if (mapped == false)
+                    if (!existingMappings.Contains(type.ClrType))
                         schema.RegisterTypeMapping(type.ClrType, type.GraphType);
                 }
             });
