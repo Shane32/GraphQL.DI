@@ -7,7 +7,7 @@ namespace GraphQL.DI
     /// <summary>
     /// Marks a method (field) to be skipped when constructing the graph type.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
     public class IgnoreAttribute : NameAttribute
     {
         /// <inheritdoc cref="IgnoreAttribute"/>

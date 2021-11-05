@@ -32,7 +32,8 @@ namespace GraphQL.DI
         /// Returns a list of properties that should have fields created for them.
         /// </summary>
         protected virtual IEnumerable<PropertyInfo> GetRegisteredProperties()
-            => typeof(TSourceType).GetProperties(BindingFlags.Public | BindingFlags.Instance);
+            => typeof(TSourceType).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                .Where(x => x.CanWrite);
 
         /// <summary>
         /// Processes the specified property and returns a <see cref="FieldType"/>
@@ -48,7 +49,7 @@ namespace GraphQL.DI
                 fieldName = fieldNameAttribute.Name;
             }
             if (fieldName == null)
-                return null; //ignore field if set to null
+                return null; //ignore field if set to null (or Ignore is specified)
 
             //determine the graphtype of the field
             var graphTypeAttribute = property.GetCustomAttribute<GraphTypeAttribute>();
@@ -133,8 +134,6 @@ namespace GraphQL.DI
                 return new TypeInformation(propertyInfo, true, type.Type, nullable, isList, isNullableList, null);
             }
             //unknown type
-            if (isList)
-                isNullableList = true;
             return new TypeInformation(propertyInfo, true, typeof(object), true, isList, isNullableList, null);
         }
 

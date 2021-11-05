@@ -9,7 +9,7 @@ namespace GraphQL.DI
     /// marks a parameter's (query argument's) input value to be an ID graph type.
     /// </summary>
     //perhaps this should apply to ReturnValue rather than Method
-    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
     public class IdAttribute : Attribute
     {
         /// <inheritdoc cref="IdAttribute"/>

@@ -569,12 +569,14 @@ namespace DIObjectGraphTypeTests
             Configure<CSkipVoidMembers, object>();
             _graphType.Fields.Find("Field1").ShouldBeNull();
             _graphType.Fields.Find("Field2").ShouldBeNull();
+            _graphType.Fields.Find("Field3").ShouldNotBeNull();
         }
 
         public class CSkipVoidMembers : DIObjectGraphBase<object>
         {
             public static Task Field1() => Task.CompletedTask;
             public static void Field2() { }
+            public static string Field3() => null!;
         }
 
         [Fact]
@@ -582,12 +584,14 @@ namespace DIObjectGraphTypeTests
         {
             Configure<CSkipNullName, object>();
             _graphType.Fields.Find("Field1").ShouldBeNull();
+            _graphType.Fields.Find("Field2").ShouldNotBeNull();
         }
 
         public class CSkipNullName : DIObjectGraphBase<object>
         {
             [Name(null)]
             public static string Field1() => "hello";
+            public static string Field2() => "hello";
         }
 
         [Fact]
@@ -595,12 +599,14 @@ namespace DIObjectGraphTypeTests
         {
             Configure<CIgnore, object>();
             _graphType.Fields.Find("Field1").ShouldBeNull();
+            _graphType.Fields.Find("Field2").ShouldNotBeNull();
         }
 
         public class CIgnore : DIObjectGraphBase<object>
         {
             [Ignore]
             public static string Field1() => "hello";
+            public static string Field2() => "hello";
         }
 
         [Fact]

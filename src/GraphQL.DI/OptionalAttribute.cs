@@ -7,7 +7,7 @@ namespace GraphQL.DI
     /// marks a parameter's (query argument's) input value to be optional.
     /// </summary>
     //perhaps this should apply to ReturnValue instead of Method
-    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method, AllowMultiple = false, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Parameter | AttributeTargets.Method | AttributeTargets.Property, AllowMultiple = false, Inherited = false)]
     public class OptionalAttribute : Attribute
     {
     }
