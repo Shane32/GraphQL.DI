@@ -21,7 +21,24 @@ namespace GraphQL.DI
     /// Wraps a <see cref="DIObjectGraphBase"/> graph type for use with GraphQL. This class should be registered as a singleton
     /// within your dependency injection provider.
     /// </summary>
-    public class DIObjectGraphType<TDIGraph> : DIObjectGraphType<TDIGraph, object> where TDIGraph : IDIObjectGraphBase<object> { }
+    public class DIObjectGraphType<TDIGraph> : DIObjectGraphType<TDIGraph, object> where TDIGraph : IDIObjectGraphBase<object>
+    {
+        /// <inheritdoc/>
+        protected override string? GetDefaultName()
+        {
+            //if this class is inherited, do not set default name
+            var thisType = GetType();
+            if (thisType != typeof(DIObjectGraphType<TDIGraph>))
+                return null;
+
+            //without this code, the name would default to DIObjectGraphType_1
+            var name = typeof(TDIGraph).Name.Replace('`', '_');
+            if (name.EndsWith("Graph", StringComparison.InvariantCulture))
+                name = name.Substring(0, name.Length - "Graph".Length);
+            return name;
+        }
+    }
+
     /// <summary>
     /// Wraps a <see cref="DIObjectGraphBase{TSource}"/> graph type for use with GraphQL. This class should be registered as a singleton
     /// within your dependency injection provider.
@@ -39,7 +56,12 @@ namespace GraphQL.DI
             var nameAttribute = classType.GetCustomAttribute<NameAttribute>();
             if (nameAttribute != null)
                 Name = nameAttribute.Name;
-            //note: should probably take the default name from TDIGraph's name, rather than this type's name
+            else {
+                var name = GetDefaultName();
+                if (name != null)
+                    Name = name;
+            }
+
             var descriptionAttribute = classType.GetCustomAttribute<DescriptionAttribute>();
             if (descriptionAttribute != null)
                 Description = descriptionAttribute.Description;
@@ -61,6 +83,23 @@ namespace GraphQL.DI
             if (fieldTypes != null)
                 foreach (var fieldType in fieldTypes)
                     AddField(fieldType);
+        }
+
+        /// <summary>
+        /// Returns the default name assigned to the graph, or <see langword="null"/> to leave the default setting set by the <see cref="GraphType"/> constructor.
+        /// </summary>
+        protected virtual string? GetDefaultName()
+        {
+            //if this class is inherited, do not set default name
+            var thisType = GetType();
+            if (thisType != typeof(DIObjectGraphType<TDIGraph, TSource>))
+                return null;
+
+            //without this code, the name would default to DIObjectGraphType_1
+            var name = typeof(TDIGraph).Name.Replace('`', '_');
+            if (name.EndsWith("Graph", StringComparison.InvariantCulture))
+                name = name.Substring(0, name.Length - "Graph".Length);
+            return name;
         }
 
         //grab some methods via reflection for us to use later
@@ -233,141 +272,19 @@ namespace GraphQL.DI
 
         }
 
-        private (Nullability, IList<CustomAttributeTypedArgument>?) GetMethodParameterNullability(ParameterInfo parameter)
-        {
-            Nullability nullableContext = GetMethodDefaultNullability(parameter.Member);
-
-            foreach (var attribute in parameter.CustomAttributes) {
-                if (attribute.AttributeType.FullName == "System.Runtime.CompilerServices.NullableAttribute" && attribute.ConstructorArguments.Count == 1) {
-                    var argType = attribute.ConstructorArguments[0].ArgumentType;
-                    if (argType == typeof(byte)) {
-                        return ((Nullability)(byte)attribute.ConstructorArguments[0].Value, null);
-                    } else if (argType == typeof(byte[])) {
-                        return (nullableContext, (IList<CustomAttributeTypedArgument>)attribute.ConstructorArguments[0].Value);
-                    } else {
-                        throw new ApplicationException($"Could not interpret NullableAttribute on {parameter.Member.Name}.{parameter.Name}.");
-                    }
-                }
-            }
-            return (nullableContext, null);
-        }
-
-        /// <summary>
-        /// Returns a boolean indicating if the return value of a method is nullable.
-        /// <para>
-        /// See <seealso href="https://github.com/dotnet/roslyn/blob/main/docs/features/nullable-metadata.md"/>.
-        /// </para>
-        /// </summary>
-        protected virtual IEnumerable<(Type Type, Nullability Nullable)> GetNullability(ParameterInfo parameter)
-        {
-            var (nullableContext, nullabilityBytes) = GetMethodParameterNullability(parameter);
-            var list = new List<(Type, Nullability)>();
-            var index = 0;
-            Consider(parameter.ParameterType, false);
-            if (nullabilityBytes != null && nullabilityBytes.Count != index)
-                throw new ApplicationException($"Unable to interpret nullability attributes for {parameter.Member.Name}.{parameter.Name}.");
-            return list;
-
-            void Consider(Type t, bool nullableValueType)
-            {
-                if (t.IsValueType) {
-                    if (t.IsGenericType) {
-                        var g = t.GetGenericTypeDefinition();
-                        if (g == typeof(Nullable<>)) {
-                            //do not increment index for Nullable<T>
-                            //do not add Nullable<T> to the list but rather just add underlying type
-                            Consider(t.GenericTypeArguments[0], true);
-                        } else {
-                            //generic structs that are not Nullable<T> will contain a 0 in the array
-                            index++;
-                            list.Add((t, nullableValueType ? Nullability.Nullable : Nullability.NonNullable));
-                            for (int i = 0; i < t.GenericTypeArguments.Length; i++) {
-                                Consider(t.GenericTypeArguments[i], false);
-                            }
-                        }
-                    } else {
-                        //do not increment index for concrete value types
-                        list.Add((t, nullableValueType ? Nullability.Nullable : Nullability.NonNullable));
-                    }
-                    return;
-                }
-                //pull the nullability flag from the array and increment index
-                var nullable = nullabilityBytes != null ? (Nullability)(byte)nullabilityBytes[index++].Value : nullableContext;
-                list.Add((t, nullable));
-
-                if (t.IsArray) {
-                    Consider(t.GetElementType(), false);
-                } else if (t.IsGenericType) {
-                    for (int i = 0; i < t.GenericTypeArguments.Length; i++) {
-                        Consider(t.GenericTypeArguments[i], false);
-                    }
-                }
-            }
-        }
-
-        private Nullability GetMethodDefaultNullability(MemberInfo method)
-        {
-            var nullable = Nullability.Unknown;
-
-            // check the parent type first to see if there's a nullable context attribute set for it
-            CheckDeclaringType(method.DeclaringType);
-
-            // now check the method to see if there's a nullable context attribute set for it
-            var attribute = method.CustomAttributes.FirstOrDefault(x =>
-                x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
-                x.ConstructorArguments.Count == 1 &&
-                x.ConstructorArguments[0].ArgumentType == typeof(byte));
-            if (attribute != null) {
-                nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
-            }
-
-            return nullable;
-
-            void CheckDeclaringType(Type parentType)
-            {
-                if (parentType.DeclaringType != null)
-                    CheckDeclaringType(parentType.DeclaringType);
-                var attribute = parentType.CustomAttributes.FirstOrDefault(x =>
-                    x.AttributeType.FullName == "System.Runtime.CompilerServices.NullableContextAttribute" &&
-                    x.ConstructorArguments.Count == 1 &&
-                    x.ConstructorArguments[0].ArgumentType == typeof(byte));
-                if (attribute != null) {
-                    nullable = (Nullability)(byte)attribute.ConstructorArguments[0].Value;
-                }
-            }
-        }
-
         /// <summary>
         /// Apply <see cref="RequiredAttribute"/>, <see cref="OptionalAttribute"/>, <see cref="RequiredListAttribute"/>,
-        /// <see cref="OptionalListAttribute"/> and <see cref="IdAttribute"/> over the supplied <see cref="TypeInformation"/>.
+        /// <see cref="OptionalListAttribute"/>, <see cref="IdAttribute"/> and <see cref="DIGraphAttribute"/> over
+        /// the supplied <see cref="TypeInformation"/>.
         /// Override this method to enforce specific graph types for specific CLR types, or to implement custom
         /// attributes to change graph type selection behavior.
         /// </summary>
         protected virtual TypeInformation ApplyAttributes(TypeInformation typeInformation)
-        {
-            var member = typeInformation.IsInputType ? (ICustomAttributeProvider)typeInformation.ParameterInfo : typeInformation.ParameterInfo.Member;
-            if (typeInformation.IsNullable) {
-                if (member.IsDefined(typeof(RequiredAttribute), false))
-                    typeInformation.IsNullable = false;
-                if (member.IsDefined(typeof(System.ComponentModel.DataAnnotations.RequiredAttribute), false))
-                    typeInformation.IsNullable = false;
-            } else {
-                if (member.IsDefined(typeof(OptionalAttribute), false))
-                    typeInformation.IsNullable = true;
-            }
-            if (typeInformation.IsList) {
-                if (typeInformation.ListIsNullable) {
-                    if (member.IsDefined(typeof(RequiredListAttribute), false))
-                        typeInformation.ListIsNullable = false;
-                } else {
-                    if (member.IsDefined(typeof(OptionalListAttribute), false))
-                        typeInformation.ListIsNullable = true;
-                }
-            }
-            if (member.IsDefined(typeof(IdAttribute), false))
-                typeInformation.GraphType = typeof(IdGraphType);
-            return typeInformation;
-        }
+            => typeInformation.ApplyAttributes(typeInformation.IsInputType ? (ICustomAttributeProvider)typeInformation.ParameterInfo! : typeInformation.MemberInfo);
+
+        /// <inheritdoc cref="ReflectionExtensions.GetNullabilityInformation(ParameterInfo)"/>
+        protected virtual IEnumerable<(Type Type, Nullability Nullable)> GetNullabilityInformation(ParameterInfo parameter)
+            => parameter.GetNullabilityInformation();
 
         private static readonly Type[] _listTypes = new Type[] {
             typeof(IEnumerable<>),
@@ -389,7 +306,7 @@ namespace GraphQL.DI
             var isOptionalParameter = parameterInfo.IsOptional;
             var isList = false;
             var isNullableList = false;
-            var typeTree = GetNullability(parameterInfo);
+            var typeTree = GetNullabilityInformation(parameterInfo);
             foreach (var type in typeTree) {
                 if (type.Type == typeof(IDataLoaderResult))
                     //assume type is nullable object
@@ -439,21 +356,7 @@ namespace GraphQL.DI
         /// Returns a GraphQL input type for a specified CLR type
         /// </summary>
         protected virtual Type InferGraphType(TypeInformation typeInformation)
-        {
-            var t = typeInformation.GraphType;
-            if (t != null) {
-                if (!typeInformation.IsNullable)
-                    t = typeof(NonNullGraphType<>).MakeGenericType(t);
-            } else {
-                t = typeInformation.Type.GetGraphTypeFromType(typeInformation.IsNullable, typeInformation.IsInputType ? TypeMappingMode.InputType : TypeMappingMode.OutputType);
-            }
-            if (typeInformation.IsList) {
-                t = typeof(ListGraphType<>).MakeGenericType(t);
-                if (!typeInformation.ListIsNullable)
-                    t = typeof(NonNullGraphType<>).MakeGenericType(t);
-            }
-            return t;
-        }
+            => typeInformation.InferGraphType();
 
         /// <summary>
         /// Returns an expression that gets/creates an instance of <typeparamref name="TDIGraph"/> from a <see cref="IResolveFieldContext"/>.

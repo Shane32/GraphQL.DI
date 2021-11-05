@@ -275,6 +275,22 @@ namespace DIObjectGraphTypeTests
         }
 
         [Fact]
+        public void InheritedRequired()
+        {
+            Configure<CInheritedRequired, object>();
+            VerifyField("Field1", false, false, "hello");
+            Verify(false);
+        }
+
+        public class CInheritedRequired : DIObjectGraphBase<object>
+        {
+            [MyRequired]
+            public static string Field1() => "hello";
+        }
+
+        public class MyRequiredAttribute : RequiredAttribute { }
+
+        [Fact]
         public async Task RequiredTask()
         {
             Configure<CRequiredTask, object>();
@@ -347,6 +363,79 @@ namespace DIObjectGraphTypeTests
         {
             [Id]
             public static int Field1() => 2;
+        }
+
+        [Fact]
+        public void IdListType()
+        {
+            Configure<CIdListType, object>();
+            VerifyField("Field1", typeof(ListGraphType<IdGraphType>), false, new[] { "hello" });
+            Verify(false);
+        }
+
+        public class CIdListType : DIObjectGraphBase<object>
+        {
+            [Id]
+            public static string[] Field1() => new[] { "hello" };
+        }
+
+        [Fact]
+        public void DIGraphType()
+        {
+            Configure<CDIGraphType, object>();
+            VerifyField("Field1", typeof(DIObjectGraphType<CDIGraphType2, object>), false, "hello");
+            Verify(false);
+        }
+
+        public class CDIGraphType2 : DIObjectGraphBase<object>
+        {
+            public static string Field1() => "hello";
+        }
+
+        public class CDIGraphType : DIObjectGraphBase<object>
+        {
+            [DIGraph(typeof(CDIGraphType2))]
+            public static string Field1() => "hello";
+        }
+
+        [Fact]
+        public void DIGraphTypeNonNull()
+        {
+            Configure<CDIGraphTypeNonNull, object>();
+            VerifyField("Field1", typeof(NonNullGraphType<DIObjectGraphType<CDIGraphType2, object>>), false, 2);
+            Verify(false);
+        }
+
+        public class CDIGraphTypeNonNull : DIObjectGraphBase<object>
+        {
+            [DIGraph(typeof(CDIGraphType2))]
+            public static int Field1() => 2;
+        }
+
+        [Fact]
+        public void DIGraphListType()
+        {
+            Configure<CDIGraphListType, object>();
+            VerifyField("Field1", typeof(ListGraphType<DIObjectGraphType<CDIGraphType2, object>>), false, new[] { "hello" });
+            Verify(false);
+        }
+
+        public class CDIGraphListType : DIObjectGraphBase<object>
+        {
+            [DIGraph(typeof(CDIGraphType2))]
+            public static string[] Field1() => new[] { "hello" };
+        }
+
+        [Fact]
+        public void DIGraphTypeInvalid()
+        {
+            Should.Throw<InvalidOperationException>(() => Configure<CDIGraphTypeInvalid, object>());
+        }
+
+        public class CDIGraphTypeInvalid : DIObjectGraphBase<object>
+        {
+            [DIGraph(typeof(string))]
+            public static string Field1() => "hello";
         }
 
         [Fact]
@@ -480,12 +569,14 @@ namespace DIObjectGraphTypeTests
             Configure<CSkipVoidMembers, object>();
             _graphType.Fields.Find("Field1").ShouldBeNull();
             _graphType.Fields.Find("Field2").ShouldBeNull();
+            _graphType.Fields.Find("Field3").ShouldNotBeNull();
         }
 
         public class CSkipVoidMembers : DIObjectGraphBase<object>
         {
             public static Task Field1() => Task.CompletedTask;
             public static void Field2() { }
+            public static string Field3() => null!;
         }
 
         [Fact]
@@ -493,12 +584,29 @@ namespace DIObjectGraphTypeTests
         {
             Configure<CSkipNullName, object>();
             _graphType.Fields.Find("Field1").ShouldBeNull();
+            _graphType.Fields.Find("Field2").ShouldNotBeNull();
         }
 
         public class CSkipNullName : DIObjectGraphBase<object>
         {
             [Name(null)]
             public static string Field1() => "hello";
+            public static string Field2() => "hello";
+        }
+
+        [Fact]
+        public void Ignore()
+        {
+            Configure<CIgnore, object>();
+            _graphType.Fields.Find("Field1").ShouldBeNull();
+            _graphType.Fields.Find("Field2").ShouldNotBeNull();
+        }
+
+        public class CIgnore : DIObjectGraphBase<object>
+        {
+            [Ignore]
+            public static string Field1() => "hello";
+            public static string Field2() => "hello";
         }
 
         [Fact]

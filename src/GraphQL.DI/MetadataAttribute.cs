@@ -5,7 +5,7 @@ namespace GraphQL.DI
     /// <summary>
     /// Marks a class (graph type), method (field) or parameter (query argument) with additional metadata.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Parameter, AllowMultiple = true, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method | AttributeTargets.Parameter | AttributeTargets.Property, AllowMultiple = true, Inherited = false)]
     public class MetadataAttribute : Attribute
     {
         /// <inheritdoc cref="MetadataAttribute"/>
