@@ -4,25 +4,18 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq.Expressions;
-using System.Threading.Tasks;
 using GraphQL;
-using GraphQL.DataLoader;
 using GraphQL.DI;
 using GraphQL.Types;
-using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Shouldly;
 using Xunit;
 
 namespace AutoInputObjectGraphTypeTests
 {
-    public class Property : AutoInputObjectGraphTypeTestBase
+    public class Property
     {
-        public Property()
-        {
-            Configure<CDefault>();
-        }
+        private readonly IInputObjectGraphType _graphType = new AutoInputObjectGraphType<CDefault>();
 
         public class CDefault
         {
@@ -165,6 +158,23 @@ namespace AutoInputObjectGraphTypeTests
             var actual = field.Metadata["ORIGINAL_EXPRESSION_PROPERTY_NAME"]
                 .ShouldBeOfType<string>();
             actual.ShouldBe(classPropertyName);
+        }
+
+        [Fact]
+        public void ExpressionCorrectlyResolves()
+        {
+            var graph = new AutoInputObjectGraphType<Class2>();
+            var dic = new Dictionary<string, object?> {
+                { "Field2", "value" }
+            };
+            var actual = (Class2)graph.ParseDictionary(dic);
+            actual.Field1.ShouldBe("value");
+        }
+
+        public class Class2
+        {
+            [Name("Field2")]
+            public string? Field1 { get; set; }
         }
     }
 }

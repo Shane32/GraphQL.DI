@@ -21,10 +21,29 @@ namespace GraphQL.DI
         /// </summary>
         public AutoInputObjectGraphType()
         {
+            var classType = typeof(TSourceType);
+            //allow default name / description / obsolete tags to remain if not overridden
+            var nameAttribute = classType.GetCustomAttribute<NameAttribute>();
+            if (nameAttribute != null)
+                Name = nameAttribute.Name;
+            //note: should probably take the default name from TSourceType's name, rather than this type's name
+            var descriptionAttribute = classType.GetCustomAttribute<DescriptionAttribute>();
+            if (descriptionAttribute != null)
+                Description = descriptionAttribute.Description;
+            var obsoleteAttribute = classType.GetCustomAttribute<ObsoleteAttribute>();
+            if (obsoleteAttribute != null)
+                DeprecationReason = obsoleteAttribute.Message;
+            //pull metadata
+            foreach (var metadataAttribute in classType.GetCustomAttributes<MetadataAttribute>())
+                Metadata.Add(metadataAttribute.Key, metadataAttribute.Value);
+
             foreach (var property in GetRegisteredProperties()) {
-                var fieldType = ProcessProperty(property);
-                if (fieldType != null)
-                    AddField(fieldType);
+                if (property != null) {
+                    var fieldType = ProcessProperty(property);
+                    if (fieldType != null)
+                        AddField(fieldType);
+
+                }
             }
         }
 

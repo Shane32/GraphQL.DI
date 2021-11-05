@@ -1,14 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using GraphQL;
 using GraphQL.DI;
-using GraphQL.Execution;
-using GraphQL.Language.AST;
 using GraphQL.Types;
-using GraphQL.Validation;
-using GraphQL.Validation.Complexity;
 using Moq;
 using Shouldly;
 using Xunit;
@@ -40,13 +33,14 @@ namespace Execution
             };
             var mockSchema = new Mock<ISchema>(MockBehavior.Strict);
             mockSchema.Setup(x => x.TypeMappings).Returns(existingMappings).Verifiable();
-            mockSchema.Setup(x => x.RegisterTypeMapping(It.IsAny<Type>(), It.IsAny<Type>())).Callback<Type, Type>((clrType, graphType) => {
-                actual.Add((clrType, graphType));
-            });
-            _mockGraphQLBuilder.Setup(x => x.Register(typeof(IConfigureSchema), It.IsAny<IConfigureSchema>(), false)).Returns<Type, IConfigureSchema, bool>((_, configure, _) => {
-                configure.Configure(mockSchema.Object, null);
-                return _mockGraphQLBuilder.Object;
-            }).Verifiable();
+            mockSchema.Setup(x => x.RegisterTypeMapping(It.IsAny<Type>(), It.IsAny<Type>()))
+                .Callback<Type, Type>((clrType, graphType) => actual.Add((clrType, graphType)));
+            _mockGraphQLBuilder.Setup(x => x.Register(typeof(IConfigureSchema), It.IsAny<IConfigureSchema>(), false))
+                .Returns<Type, IConfigureSchema, bool>((_, configure, _) => {
+                    configure.Configure(mockSchema.Object, null);
+                    return _mockGraphQLBuilder.Object;
+                })
+                .Verifiable();
             _graphQLBuilder.AddDIClrTypeMappings();
             mockSchema.Verify();
             _mockGraphQLBuilder.Verify();
