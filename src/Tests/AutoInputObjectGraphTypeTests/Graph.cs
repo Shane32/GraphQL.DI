@@ -29,6 +29,22 @@ namespace AutoInputObjectGraphTypeTests
         public class CGraphName { }
 
         [Fact]
+        public void DefaultGraphName()
+        {
+            Configure<CDefault>().Name.ShouldBe("CDefault");
+        }
+
+        public class CDefault { }
+
+        [Fact]
+        public void DefaultGraphNameInputModel()
+        {
+            Configure<CDefaultInputModel>().Name.ShouldBe("CDefaultInput");
+        }
+
+        public class CDefaultInputModel { }
+
+        [Fact]
         public void GraphDescription()
         {
             Configure<CGraphDescription>().Description.ShouldBe("TestGraphDescription");

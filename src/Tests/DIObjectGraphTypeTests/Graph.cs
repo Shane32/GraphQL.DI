@@ -20,6 +20,33 @@ namespace DIObjectGraphTypeTests
         public class CGraphName : DIObjectGraphBase { }
 
         [Fact]
+        public void GraphDefaultName()
+        {
+            Configure<CGraphDefaultName, object>().Name.ShouldBe("CGraphDefaultName");
+            new DIObjectGraphType<CGraphDefaultName>().Name.ShouldBe("CGraphDefaultName");
+        }
+
+        public class CGraphDefaultName : DIObjectGraphBase { }
+
+        [Fact]
+        public void GraphDefaultName2()
+        {
+            Configure<CGraphDefaultName2, Class1>().Name.ShouldBe("CGraphDefaultName2");
+        }
+
+        [Fact]
+        public void GraphDefaultName3()
+        {
+            Configure<CGraphDefaultNameGraph, object>().Name.ShouldBe("CGraphDefaultName");
+            new DIObjectGraphType<CGraphDefaultNameGraph>().Name.ShouldBe("CGraphDefaultName");
+        }
+
+        public class CGraphDefaultNameGraph : DIObjectGraphBase { }
+
+        public class CGraphDefaultName2 : DIObjectGraphBase<Class1> { }
+        public class Class1 { }
+
+        [Fact]
         public void GraphDescription()
         {
             Configure<CGraphDescription, object>().Description.ShouldBe("TestGraphDescription");

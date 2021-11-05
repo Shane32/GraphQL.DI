@@ -22,11 +22,17 @@ namespace GraphQL.DI
         public AutoInputObjectGraphType()
         {
             var classType = typeof(TSourceType);
+
             //allow default name / description / obsolete tags to remain if not overridden
             var nameAttribute = classType.GetCustomAttribute<NameAttribute>();
             if (nameAttribute != null)
                 Name = nameAttribute.Name;
-            //note: should probably take the default name from TSourceType's name, rather than this type's name
+            else {
+                var name = GetDefaultName();
+                if (name != null)
+                    Name = name;
+            }
+
             var descriptionAttribute = classType.GetCustomAttribute<DescriptionAttribute>();
             if (descriptionAttribute != null)
                 Description = descriptionAttribute.Description;
@@ -45,6 +51,22 @@ namespace GraphQL.DI
 
                 }
             }
+        }
+
+        /// <summary>
+        /// Returns the default name assigned to the graph, or <see langword="null"/> to leave the default setting set by the <see cref="GraphType"/> constructor.
+        /// </summary>
+        protected virtual string? GetDefaultName()
+        {
+            //if this class is inherited, do not set default name
+            if (GetType() != typeof(AutoInputObjectGraphType<TSourceType>))
+                return null;
+
+            //without this code, the name would default to AutoInputObjectGraphType_1
+            var name = typeof(TSourceType).Name.Replace('`', '_');
+            if (name.EndsWith("Model", StringComparison.InvariantCulture))
+                name = name.Substring(0, name.Length - "Model".Length);
+            return name;
         }
 
         /// <summary>

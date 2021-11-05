@@ -21,7 +21,24 @@ namespace GraphQL.DI
     /// Wraps a <see cref="DIObjectGraphBase"/> graph type for use with GraphQL. This class should be registered as a singleton
     /// within your dependency injection provider.
     /// </summary>
-    public class DIObjectGraphType<TDIGraph> : DIObjectGraphType<TDIGraph, object> where TDIGraph : IDIObjectGraphBase<object> { }
+    public class DIObjectGraphType<TDIGraph> : DIObjectGraphType<TDIGraph, object> where TDIGraph : IDIObjectGraphBase<object>
+    {
+        /// <inheritdoc/>
+        protected override string? GetDefaultName()
+        {
+            //if this class is inherited, do not set default name
+            var thisType = GetType();
+            if (thisType != typeof(DIObjectGraphType<TDIGraph>))
+                return null;
+
+            //without this code, the name would default to DIObjectGraphType_1
+            var name = typeof(TDIGraph).Name.Replace('`', '_');
+            if (name.EndsWith("Graph", StringComparison.InvariantCulture))
+                name = name.Substring(0, name.Length - "Graph".Length);
+            return name;
+        }
+    }
+
     /// <summary>
     /// Wraps a <see cref="DIObjectGraphBase{TSource}"/> graph type for use with GraphQL. This class should be registered as a singleton
     /// within your dependency injection provider.
@@ -39,7 +56,12 @@ namespace GraphQL.DI
             var nameAttribute = classType.GetCustomAttribute<NameAttribute>();
             if (nameAttribute != null)
                 Name = nameAttribute.Name;
-            //note: should probably take the default name from TDIGraph's name, rather than this type's name
+            else {
+                var name = GetDefaultName();
+                if (name != null)
+                    Name = name;
+            }
+
             var descriptionAttribute = classType.GetCustomAttribute<DescriptionAttribute>();
             if (descriptionAttribute != null)
                 Description = descriptionAttribute.Description;
@@ -61,6 +83,23 @@ namespace GraphQL.DI
             if (fieldTypes != null)
                 foreach (var fieldType in fieldTypes)
                     AddField(fieldType);
+        }
+
+        /// <summary>
+        /// Returns the default name assigned to the graph, or <see langword="null"/> to leave the default setting set by the <see cref="GraphType"/> constructor.
+        /// </summary>
+        protected virtual string? GetDefaultName()
+        {
+            //if this class is inherited, do not set default name
+            var thisType = GetType();
+            if (thisType != typeof(DIObjectGraphType<TDIGraph, TSource>))
+                return null;
+
+            //without this code, the name would default to DIObjectGraphType_1
+            var name = typeof(TDIGraph).Name.Replace('`', '_');
+            if (name.EndsWith("Graph", StringComparison.InvariantCulture))
+                name = name.Substring(0, name.Length - "Graph".Length);
+            return name;
         }
 
         //grab some methods via reflection for us to use later
