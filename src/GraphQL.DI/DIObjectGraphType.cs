@@ -159,18 +159,6 @@ namespace GraphQL.DI
         }
 
         /// <summary>
-        /// Returns the list of parameters for the specified method.
-        /// Sorts the list if specified by <see cref="SortMembers"/>.
-        /// </summary>
-        protected IEnumerable<ParameterInfo> GetMethodParameters(MethodInfo methodInfo)
-        {
-            var parameters = methodInfo.GetParameters().AsEnumerable();
-            if (SortMembers)
-                parameters = parameters.OrderBy(x => x.Name, StringComparer.InvariantCultureIgnoreCase);
-            return parameters;
-        }
-
-        /// <summary>
         /// Converts a specified method (<see cref="MethodInfo"/> instance) into a field definition.
         /// </summary>
         protected virtual DIFieldType? ProcessMethod(MethodInfo method)
@@ -200,7 +188,7 @@ namespace GraphQL.DI
             {
                 var resolveFieldContextParameter = Expression.Parameter(typeof(IResolveFieldContext));
                 var executeParams = new List<Expression>();
-                foreach (var param in GetMethodParameters(method)) {
+                foreach (var param in method.GetParameters()) {
                     var queryArgument = ProcessParameter(method, param, resolveFieldContextParameter, out bool isService, out Expression expr);
                     anyParamsUseServices |= isService;
                     if (queryArgument != null)
