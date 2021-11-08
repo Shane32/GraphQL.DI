@@ -70,11 +70,22 @@ namespace GraphQL.DI
         }
 
         /// <summary>
+        /// Indicates that the fields and arguments should be added to the graph type alphabetically.
+        /// </summary>
+        public static bool SortMembers { get; set; } = true;
+
+        /// <summary>
         /// Returns a list of properties that should have fields created for them.
+        /// Sorts the list if specified by <see cref="SortMembers"/>.
         /// </summary>
         protected virtual IEnumerable<PropertyInfo> GetRegisteredProperties()
-            => typeof(TSourceType).GetProperties(BindingFlags.Public | BindingFlags.Instance)
+        {
+            var props = typeof(TSourceType).GetProperties(BindingFlags.Public | BindingFlags.Instance)
                 .Where(x => x.CanWrite);
+            if (SortMembers)
+                props = props.OrderBy(x => x.Name, StringComparer.InvariantCultureIgnoreCase);
+            return props;
+        }
 
         /// <summary>
         /// Processes the specified property and returns a <see cref="FieldType"/>
