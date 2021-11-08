@@ -123,6 +123,11 @@ namespace GraphQL.DI
         protected bool DefaultCreateScope { get; set; } = false;
 
         /// <summary>
+        /// Indicates that the fields and arguments should be added to the graph type alphabetically.
+        /// </summary>
+        public static bool SortMembers { get; set; } = true;
+
+        /// <summary>
         /// Returns a list of <see cref="DIFieldType"/> instances representing the fields ready to be
         /// added to the graph type.
         /// </summary>
@@ -142,10 +147,27 @@ namespace GraphQL.DI
         /// <summary>
         /// Returns a list of methods (<see cref="MethodInfo"/> instances) on the <typeparamref name="TDIGraph"/> class to be
         /// converted into field definitions.
+        /// Sorts the list if specified by <see cref="SortMembers"/>.
         /// </summary>
         protected virtual IEnumerable<MethodInfo> GetMethodsToProcess()
         {
-            return typeof(TDIGraph).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(x => !x.ContainsGenericParameters);
+            var methods = typeof(TDIGraph).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+                .Where(x => !x.ContainsGenericParameters);
+            if (SortMembers)
+                methods = methods.OrderBy(x => x.Name, StringComparer.InvariantCultureIgnoreCase);
+            return methods;
+        }
+
+        /// <summary>
+        /// Returns the list of parameters for the specified method.
+        /// Sorts the list if specified by <see cref="SortMembers"/>.
+        /// </summary>
+        protected IEnumerable<ParameterInfo> GetMethodParameters(MethodInfo methodInfo)
+        {
+            var parameters = methodInfo.GetParameters().AsEnumerable();
+            if (SortMembers)
+                parameters = parameters.OrderBy(x => x.Name, StringComparer.InvariantCultureIgnoreCase);
+            return parameters;
         }
 
         /// <summary>
@@ -178,7 +200,7 @@ namespace GraphQL.DI
             {
                 var resolveFieldContextParameter = Expression.Parameter(typeof(IResolveFieldContext));
                 var executeParams = new List<Expression>();
-                foreach (var param in method.GetParameters()) {
+                foreach (var param in GetMethodParameters(method)) {
                     var queryArgument = ProcessParameter(method, param, resolveFieldContextParameter, out bool isService, out Expression expr);
                     anyParamsUseServices |= isService;
                     if (queryArgument != null)
