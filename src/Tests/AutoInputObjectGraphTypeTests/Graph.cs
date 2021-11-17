@@ -82,7 +82,7 @@ namespace AutoInputObjectGraphTypeTests
 
         public class CCanOverrideMembersGraphType : AutoInputObjectGraphType<CCanOverrideMembers>
         {
-            protected override IEnumerable<PropertyInfo> GetRegisteredProperties() => Array.Empty<PropertyInfo>();
+            protected override IEnumerable<PropertyInfo> GetPropertiesToProcess() => Array.Empty<PropertyInfo>();
         }
 
         public class CCanOverrideMembers

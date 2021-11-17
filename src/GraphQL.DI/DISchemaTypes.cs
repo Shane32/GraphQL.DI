@@ -34,7 +34,7 @@ namespace GraphQL.DI
         protected virtual bool AutoMapInputType(Type clrType) => _autoMapInputTypes;
 
         /// <summary>
-        /// Return true if the specified CLR type should be wrapped with <see cref="AutoOutputObjectGraphType{TSourceType}"/>
+        /// Return true if the specified CLR type should be wrapped with <see cref="AutoObjectGraphType{TSourceType}"/>
         /// to create a graph type if no graph type is mapped for this output type.
         /// </summary>
         protected virtual bool AutoMapOutputType(Type clrType) => _autoMapOutputTypes;
