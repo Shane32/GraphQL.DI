@@ -104,7 +104,7 @@ namespace GraphQL.DI
         protected virtual IEnumerable<MethodInfo> GetMethodsToProcess()
         {
             var methods = typeof(TSourceType).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
-                .Where(x => !x.ContainsGenericParameters);
+                .Where(x => !x.ContainsGenericParameters && !x.IsSpecialName);
             return methods;
         }
 

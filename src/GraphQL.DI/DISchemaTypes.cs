@@ -7,8 +7,8 @@ namespace GraphQL.DI
     /// <inheritdoc/>
     public class DISchemaTypes : SchemaTypes
     {
-        private readonly bool _autoMapInputTypes;
-        private readonly bool _autoMapOutputTypes;
+        private readonly bool _autoMapInputTypes = true;
+        private readonly bool _autoMapOutputTypes = true;
 
         /// <summary>
         /// Initializes a new instance for the specified schema, and with the specified type resolver.
@@ -17,8 +17,6 @@ namespace GraphQL.DI
         /// </summary>
         public DISchemaTypes(ISchema schema, IServiceProvider serviceProvider) : base(schema, serviceProvider)
         {
-            _autoMapInputTypes = true;
-            _autoMapOutputTypes = true;
         }
 
         /// <summary>
@@ -29,6 +27,10 @@ namespace GraphQL.DI
         /// </summary>
         public DISchemaTypes(ISchema schema, IServiceProvider serviceProvider, bool autoMapInputTypes, bool autoMapOutputTypes) : base(schema, serviceProvider)
         {
+            if (autoMapInputTypes == false || autoMapOutputTypes == false)
+                throw new NotSupportedException(
+                    "This functionality is not yet supported due to a design constraint within GraphQL.NET. " +
+                    $"Please override {nameof(AutoMapInputType)} and/or {nameof(AutoMapOutputType)} to disable auto mapping.");
             _autoMapInputTypes = autoMapInputTypes;
             _autoMapOutputTypes = autoMapOutputTypes;
         }
@@ -37,8 +39,11 @@ namespace GraphQL.DI
         protected override Type? GetGraphTypeFromClrType(Type clrType, bool isInputType, List<(Type ClrType, Type GraphType)> typeMappings)
         {
             var type = base.GetGraphTypeFromClrType(clrType, isInputType, typeMappings);
-            if (type == null && isInputType && clrType.IsClass) {
+            if (type == null && isInputType && clrType.IsClass && AutoMapInputType(clrType)) {
                 return typeof(AutoInputObjectGraphType<>).MakeGenericType(clrType);
+            }
+            if (type == null && !isInputType && clrType.IsClass && AutoMapOutputType(clrType)) {
+                return typeof(AutoObjectGraphType<>).MakeGenericType(clrType);
             }
             return type;
         }
