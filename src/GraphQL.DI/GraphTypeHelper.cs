@@ -168,7 +168,7 @@ namespace GraphQL.DI
         /// Analyzes a property and returns a <see cref="TypeInformation"/>
         /// struct containing type information necessary to select a graph type.
         /// </summary>
-        public static TypeInformation GetTypeInformation(PropertyInfo propertyInfo, Func<PropertyInfo, IEnumerable<(Type Type, Nullability Nullable)>> getNullabilityInformationFunc)
+        public static TypeInformation GetTypeInformation(PropertyInfo propertyInfo, bool isInputProperty, Func<PropertyInfo, IEnumerable<(Type Type, Nullability Nullable)>> getNullabilityInformationFunc)
         {
             var isList = false;
             var isNullableList = false;
@@ -197,10 +197,10 @@ namespace GraphQL.DI
                 }
                 //found match
                 var nullable = type.Nullable != Nullability.NonNullable;
-                return new TypeInformation(propertyInfo, true, type.Type, nullable, isList, isNullableList, null);
+                return new TypeInformation(propertyInfo, isInputProperty, type.Type, nullable, isList, isNullableList, null);
             }
             //unknown type
-            return new TypeInformation(propertyInfo, true, typeof(object), true, isList, isNullableList, null);
+            return new TypeInformation(propertyInfo, isInputProperty, typeof(object), true, isList, isNullableList, null);
         }
 
         /// <summary>

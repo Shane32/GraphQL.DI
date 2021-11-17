@@ -10,7 +10,23 @@ namespace GraphQL.DI
         private readonly bool _autoMapInputTypes;
         private readonly bool _autoMapOutputTypes;
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Initializes a new instance for the specified schema, and with the specified type resolver.
+        /// Input and output clr types not mapped to a graph type utilize <see cref="AutoInputObjectGraphType{TSourceType}"/>
+        /// and <see cref="AutoObjectGraphType{TSourceType}"/> respectively.
+        /// </summary>
+        public DISchemaTypes(ISchema schema, IServiceProvider serviceProvider) : base(schema, serviceProvider)
+        {
+            _autoMapInputTypes = true;
+            _autoMapOutputTypes = true;
+        }
+
+        /// <summary>
+        /// Initializes a new instance for the specified schema, and with the specified type resolver.
+        /// Input and output clr types not mapped to a graph type utilize <see cref="AutoInputObjectGraphType{TSourceType}"/>
+        /// and <see cref="AutoObjectGraphType{TSourceType}"/> respectively, if specified via
+        /// <paramref name="autoMapInputTypes"/> and <paramref name="autoMapOutputTypes"/>.
+        /// </summary>
         public DISchemaTypes(ISchema schema, IServiceProvider serviceProvider, bool autoMapInputTypes, bool autoMapOutputTypes) : base(schema, serviceProvider)
         {
             _autoMapInputTypes = autoMapInputTypes;
@@ -28,14 +44,16 @@ namespace GraphQL.DI
         }
 
         /// <summary>
-        /// Return true if the specified CLR type should be wrapped with <see cref="AutoInputObjectGraphType{TSourceType}"/>
-        /// to create a graph type if no graph type is mapped for this input type.
+        /// Called when no input graph type is registered for the specified CLR type.
+        /// Return true if the specified CLR type should be wrapped with <see cref="AutoInputObjectGraphType{TSourceType}"/>.
+        /// Defaults value depends on the constructor arguments.
         /// </summary>
         protected virtual bool AutoMapInputType(Type clrType) => _autoMapInputTypes;
 
         /// <summary>
-        /// Return true if the specified CLR type should be wrapped with <see cref="AutoObjectGraphType{TSourceType}"/>
-        /// to create a graph type if no graph type is mapped for this output type.
+        /// Called when no output graph type is registered for the specified CLR type.
+        /// Return true if the specified CLR type should be wrapped with <see cref="AutoObjectGraphType{TSourceType}"/>.
+        /// Defaults value depends on the constructor arguments.
         /// </summary>
         protected virtual bool AutoMapOutputType(Type clrType) => _autoMapOutputTypes;
     }

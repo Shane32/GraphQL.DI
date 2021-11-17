@@ -11,74 +11,58 @@ using Moq;
 using Shouldly;
 using Xunit;
 
-namespace DIObjectGraphTypeTests
+namespace AutoObjectGraphTypeTests
 {
-    public class Field : DIObjectGraphTypeTestBase
+    public class Field : AutoObjectGraphTypeTestBase
     {
         [Fact]
         public void StaticMethod()
         {
-            Configure<CStaticMethod, object>();
+            Configure<CStaticMethod>();
             VerifyField("Field1", nullable: true, concurrent: false, returnValue: "hello");
             Verify(false);
         }
 
-        public class CStaticMethod : DIObjectGraphBase
+        public class CStaticMethod
         {
-            public CStaticMethod() => throw new Exception();
-
             public static string Field1() => "hello";
         }
 
         [Fact]
         public void InstanceMethod()
         {
-            Configure<CInstanceMethod, object>(true);
+            Configure<CInstanceMethod>();
             VerifyField("Field1", nullable: true, concurrent: false, returnValue: "hello");
             Verify(false);
         }
 
-        public class CInstanceMethod : DIObjectGraphBase
+        public class CInstanceMethod
         {
             public string Field1() => "hello";
         }
 
         [Fact]
-        public void SetsContext()
-        {
-            Configure<CVerifyContext, object>(true);
-            _graphType.Fields.Find("Field1").Resolver.Resolve(_contextMock.Object).ShouldBe(_contextMock.Object);
-        }
-
-        public class CVerifyContext : DIObjectGraphBase
-        {
-            public object Field1() => Context;
-        }
-
-        [Fact]
         public async Task StaticAsyncMethod()
         {
-            Configure<CStaticAsyncMethod, object>();
+            Configure<CStaticAsyncMethod>();
             await VerifyFieldAsync("Field1", nullable: true, concurrent: true, returnValue: "hello");
             Verify(false);
         }
 
-        public class CStaticAsyncMethod : DIObjectGraphBase
+        public class CStaticAsyncMethod
         {
-            public CStaticAsyncMethod() => throw new Exception();
-
             public static Task<string> Field1() => Task.FromResult<string>("hello");
         }
 
         [Fact]
         public async Task InstanceAsyncMethod()
         {
-            Configure<CInstanceAsyncMethod, object>(true);
+            Configure<CInstanceAsyncMethod>();
             await VerifyFieldAsync("Field1", nullable: true, concurrent: false, returnValue: "hello");
             Verify(false);
         }
 
-        public class CInstanceAsyncMethod : DIObjectGraphBase
+        public class CInstanceAsyncMethod
         {
             public Task<string> Field1() => Task.FromResult<string>("hello");
         }
@@ -86,12 +70,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void Name()
         {
-            Configure<CName, object>();
+            Configure<CName>();
             VerifyField("FieldTest", true, false, "hello");
             Verify(false);
         }
 
-        public class CName : DIObjectGraphBase
+        public class CName
         {
             [Name("FieldTest")]
             public static string Field1() => "hello";
@@ -100,12 +84,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void Description()
         {
-            Configure<CDescription, object>();
+            Configure<CDescription>();
             VerifyField("Field1", true, false, "hello").Description.ShouldBe("DescriptionTest");
             Verify(false);
         }
 
-        public class CDescription : DIObjectGraphBase
+        public class CDescription
         {
             [Description("DescriptionTest")]
             public static string Field1() => "hello";
@@ -114,12 +98,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void Obsolete()
         {
-            Configure<CObsolete, object>();
+            Configure<CObsolete>();
             VerifyField("Field1", true, false, "hello").DeprecationReason.ShouldBe("ObsoleteTest");
             Verify(false);
         }
 
-        public class CObsolete : DIObjectGraphBase
+        public class CObsolete
         {
             [Obsolete("ObsoleteTest")]
             public static string Field1() => "hello";
@@ -128,14 +112,14 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void Context()
         {
-            Configure<CContext, object>();
+            Configure<CContext>();
             _source = "testSource";
             VerifyField("Field1", true, false, "testSource");
             _contextMock.Verify(x => x.Source, Times.Once);
             Verify(false);
         }
 
-        public class CContext : DIObjectGraphBase
+        public class CContext
         {
             public static string Field1(IResolveFieldContext context) => (string)context.Source;
         }
@@ -143,14 +127,14 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void Context_Typed()
         {
-            Configure<CContext_Typed, object>();
+            Configure<CContext_Typed>();
             _source = "testSource";
             VerifyField("Field1", true, false, "testSource");
             _contextMock.Verify(x => x.Source, Times.AtLeastOnce);
             Verify(false);
         }
 
-        public class CContext_Typed : DIObjectGraphBase
+        public class CContext_Typed
         {
             public static string Field1(IResolveFieldContext<object> context) => (string)context.Source;
         }
@@ -158,10 +142,10 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void Context_WrongType()
         {
-            Should.Throw<InvalidOperationException>(() => Configure<CContext_WrongType, object>());
+            Should.Throw<InvalidOperationException>(() => Configure<CContext_WrongType>());
         }
 
-        public class CContext_WrongType : DIObjectGraphBase
+        public class CContext_WrongType
         {
             public static string Field1(IResolveFieldContext<string> context) => context.Source;
         }
@@ -169,25 +153,42 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void Source()
         {
-            Configure<CSource, object>();
-            _source = "testSource";
+            Configure<CSource>();
+            _source = new CSource() { Value = "testSource" };
             VerifyField("Field1", true, false, "testSource");
             _contextMock.Verify(x => x.Source, Times.Once);
             Verify(false);
         }
 
-        public class CSource : DIObjectGraphBase
+        public class CSource
         {
-            public static string Field1([FromSource] object source) => (string)source;
+            public string Value;
+            public static string Field1([FromSource] CSource source) => source.Value;
+        }
+
+        [Fact]
+        public void Source2()
+        {
+            Configure<CSource2>();
+            _source = new CSource2() { Value = "testSource" };
+            VerifyField("Field1", true, false, "testSource");
+            _contextMock.Verify(x => x.Source, Times.Once);
+            Verify(false);
+        }
+
+        public class CSource2
+        {
+            public string Value;
+            public string Field1() => Value;
         }
 
         [Fact]
         public void Source_WrongType()
         {
-            Should.Throw<InvalidOperationException>(() => Configure<CSource_WrongType, int>());
+            Should.Throw<InvalidOperationException>(() => Configure<CSource_WrongType>());
         }
 
-        public class CSource_WrongType : DIObjectGraphBase<int>
+        public class CSource_WrongType
         {
             public static string Field1([FromSource] string source) => source;
         }
@@ -195,13 +196,13 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void ServiceProvider()
         {
-            Configure<CServiceProvider, object>();
+            Configure<CServiceProvider>();
             _serviceProviderMock.Setup(x => x.GetService(typeof(string))).Returns("hello").Verifiable();
             VerifyField("Field1", true, false, "hello");
             Verify(false);
         }
 
-        public class CServiceProvider : DIObjectGraphBase
+        public class CServiceProvider
         {
             public static string Field1(IServiceProvider serviceProvider) => serviceProvider.GetRequiredService<string>();
         }
@@ -209,13 +210,13 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public async Task ServiceProviderForScoped()
         {
-            Configure<CServiceProviderForScoped, object>();
+            Configure<CServiceProviderForScoped>();
             _scopedServiceProviderMock.Setup(x => x.GetService(typeof(string))).Returns("hello").Verifiable();
             await VerifyFieldAsync("Field1", true, true, "hello");
             Verify(true);
         }
 
-        public class CServiceProviderForScoped : DIObjectGraphBase
+        public class CServiceProviderForScoped
         {
             [Concurrent(true)]
             public static Task<string> Field1(IServiceProvider serviceProvider) => Task.FromResult<string>(serviceProvider.GetRequiredService<string>());
@@ -224,12 +225,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void NullableValue()
         {
-            Configure<CNullableValue, object>();
+            Configure<CNullableValue>();
             VerifyField("Field1", true, false, (int?)null);
             Verify(false);
         }
 
-        public class CNullableValue : DIObjectGraphBase<object>
+        public class CNullableValue
         {
             public static int? Field1() => null;
         }
@@ -237,12 +238,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void NullableValueExplicit()
         {
-            Configure<CNullableValueExplicit, object>();
+            Configure<CNullableValueExplicit>();
             VerifyField("Field1", true, false, (int?)1);
             Verify(false);
         }
 
-        public class CNullableValueExplicit : DIObjectGraphBase<object>
+        public class CNullableValueExplicit
         {
             [Optional]
             public static int Field1() => 1;
@@ -251,12 +252,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void NonNullableValue()
         {
-            Configure<CNonNullableValue, object>();
+            Configure<CNonNullableValue>();
             VerifyField("Field1", false, false, 1);
             Verify(false);
         }
 
-        public class CNonNullableValue : DIObjectGraphBase<object>
+        public class CNonNullableValue
         {
             public static int Field1() => 1;
         }
@@ -264,12 +265,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void Required()
         {
-            Configure<CRequired, object>();
+            Configure<CRequired>();
             VerifyField("Field1", false, false, "hello");
             Verify(false);
         }
 
-        public class CRequired : DIObjectGraphBase<object>
+        public class CRequired
         {
             [Required]
             public static string Field1() => "hello";
@@ -278,12 +279,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void InheritedRequired()
         {
-            Configure<CInheritedRequired, object>();
+            Configure<CInheritedRequired>();
             VerifyField("Field1", false, false, "hello");
             Verify(false);
         }
 
-        public class CInheritedRequired : DIObjectGraphBase<object>
+        public class CInheritedRequired
         {
             [MyRequired]
             public static string Field1() => "hello";
@@ -294,12 +295,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public async Task RequiredTask()
         {
-            Configure<CRequiredTask, object>();
+            Configure<CRequiredTask>();
             await VerifyFieldAsync("Field1", false, true, "hello");
             Verify(false);
         }
 
-        public class CRequiredTask : DIObjectGraphBase<object>
+        public class CRequiredTask
         {
             [Required]
             public static Task<string> Field1() => Task.FromResult("hello");
@@ -308,12 +309,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void CustomType()
         {
-            Configure<CCustomType, object>();
+            Configure<CCustomType>();
             VerifyField("Field1", typeof(IdGraphType), false, "hello");
             Verify(false);
         }
 
-        public class CCustomType : DIObjectGraphBase<object>
+        public class CCustomType
         {
             [GraphType(typeof(IdGraphType))]
             public static string Field1() => "hello";
@@ -322,12 +323,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void InheritedCustomType()
         {
-            Configure<CInheritedCustomType, object>();
+            Configure<CInheritedCustomType>();
             VerifyField("Field1", typeof(IdGraphType), false, "hello");
             Verify(false);
         }
 
-        public class CInheritedCustomType : DIObjectGraphBase<object>
+        public class CInheritedCustomType
         {
             [MyIdGraphType]
             public static string Field1() => "hello";
@@ -341,12 +342,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void IdType()
         {
-            Configure<CIdType, object>();
+            Configure<CIdType>();
             VerifyField("Field1", typeof(IdGraphType), false, "hello");
             Verify(false);
         }
 
-        public class CIdType : DIObjectGraphBase<object>
+        public class CIdType
         {
             [Id]
             public static string Field1() => "hello";
@@ -355,12 +356,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void IdTypeNonNull()
         {
-            Configure<CIdTypeNonNull, object>();
+            Configure<CIdTypeNonNull>();
             VerifyField("Field1", typeof(NonNullGraphType<IdGraphType>), false, 2);
             Verify(false);
         }
 
-        public class CIdTypeNonNull : DIObjectGraphBase<object>
+        public class CIdTypeNonNull
         {
             [Id]
             public static int Field1() => 2;
@@ -369,12 +370,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void IdListType()
         {
-            Configure<CIdListType, object>();
+            Configure<CIdListType>();
             VerifyField("Field1", typeof(ListGraphType<IdGraphType>), false, new[] { "hello" });
             Verify(false);
         }
 
-        public class CIdListType : DIObjectGraphBase<object>
+        public class CIdListType
         {
             [Id]
             public static string[] Field1() => new[] { "hello" };
@@ -383,7 +384,7 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void DIGraphType()
         {
-            Configure<CDIGraphType, object>();
+            Configure<CDIGraphType>();
             VerifyField("Field1", typeof(DIObjectGraphType<CDIGraphType2, object>), false, "hello");
             Verify(false);
         }
@@ -393,7 +394,7 @@ namespace DIObjectGraphTypeTests
             public static string Field1() => "hello";
         }
 
-        public class CDIGraphType : DIObjectGraphBase<object>
+        public class CDIGraphType
         {
             [DIGraph(typeof(CDIGraphType2))]
             public static string Field1() => "hello";
@@ -402,12 +403,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void DIGraphTypeNonNull()
         {
-            Configure<CDIGraphTypeNonNull, object>();
+            Configure<CDIGraphTypeNonNull>();
             VerifyField("Field1", typeof(NonNullGraphType<DIObjectGraphType<CDIGraphType2, object>>), false, 2);
             Verify(false);
         }
 
-        public class CDIGraphTypeNonNull : DIObjectGraphBase<object>
+        public class CDIGraphTypeNonNull
         {
             [DIGraph(typeof(CDIGraphType2))]
             public static int Field1() => 2;
@@ -416,12 +417,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void DIGraphListType()
         {
-            Configure<CDIGraphListType, object>();
+            Configure<CDIGraphListType>();
             VerifyField("Field1", typeof(ListGraphType<DIObjectGraphType<CDIGraphType2, object>>), false, new[] { "hello" });
             Verify(false);
         }
 
-        public class CDIGraphListType : DIObjectGraphBase<object>
+        public class CDIGraphListType
         {
             [DIGraph(typeof(CDIGraphType2))]
             public static string[] Field1() => new[] { "hello" };
@@ -430,10 +431,10 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void DIGraphTypeInvalid()
         {
-            Should.Throw<InvalidOperationException>(() => Configure<CDIGraphTypeInvalid, object>());
+            Should.Throw<InvalidOperationException>(() => Configure<CDIGraphTypeInvalid>());
         }
 
-        public class CDIGraphTypeInvalid : DIObjectGraphBase<object>
+        public class CDIGraphTypeInvalid
         {
             [DIGraph(typeof(string))]
             public static string Field1() => "hello";
@@ -442,12 +443,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public async Task Concurrent()
         {
-            Configure<CConcurrent, object>();
+            Configure<CConcurrent>();
             await VerifyFieldAsync("Field1", true, true, "hello");
             Verify(false);
         }
 
-        public class CConcurrent : DIObjectGraphBase<object>
+        public class CConcurrent
         {
             [Concurrent]
             public static Task<string> Field1() => Task.FromResult<string>("hello");
@@ -456,12 +457,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void ConcurrentIgnoredForSynchronousMethods()
         {
-            Configure<CConcurrentIgnoredForSynchronousMethods, object>();
+            Configure<CConcurrentIgnoredForSynchronousMethods>();
             VerifyField("Field1", true, false, "hello");
             Verify(false);
         }
 
-        public class CConcurrentIgnoredForSynchronousMethods : DIObjectGraphBase<object>
+        public class CConcurrentIgnoredForSynchronousMethods
         {
             [Concurrent]
             public static string Field1() => "hello";
@@ -470,12 +471,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public async Task AlwaysConcurrentForStatic()
         {
-            Configure<CAlwaysConcurrentForStatic, object>();
+            Configure<CAlwaysConcurrentForStatic>();
             await VerifyFieldAsync("Field1", true, true, "hello");
             Verify(false);
         }
 
-        public class CAlwaysConcurrentForStatic : DIObjectGraphBase<object>
+        public class CAlwaysConcurrentForStatic
         {
             public static Task<string> Field1() => Task.FromResult<string>("hello");
         }
@@ -483,12 +484,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public async Task NotScopedWhenNoServices()
         {
-            Configure<CNotScopedWhenNoServices, object>();
+            Configure<CNotScopedWhenNoServices>();
             await VerifyFieldAsync("Field1", true, true, "hello");
             Verify(false);
         }
 
-        public class CNotScopedWhenNoServices : DIObjectGraphBase<object>
+        public class CNotScopedWhenNoServices
         {
             [Concurrent(true)]
             public static Task<string> Field1() => Task.FromResult<string>("hello");
@@ -497,13 +498,13 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public async Task AlwaysConcurrentForStaticUnlessService()
         {
-            Configure<CAlwaysConcurrentForStaticUnlessService, object>();
+            Configure<CAlwaysConcurrentForStaticUnlessService>();
             _serviceProviderMock.Setup(x => x.GetService(typeof(string))).Returns("hello").Verifiable();
             await VerifyFieldAsync("Field1", true, false, "hello");
             Verify(false);
         }
 
-        public class CAlwaysConcurrentForStaticUnlessService : DIObjectGraphBase<object>
+        public class CAlwaysConcurrentForStaticUnlessService
         {
             public static Task<string> Field1([FromServices] string value) => Task.FromResult<string>(value);
         }
@@ -511,12 +512,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public async Task ScopedOnlyWhenSpecifiedWithServices()
         {
-            Configure<CScopedOnlyWhenSpecified, object>();
+            Configure<CScopedOnlyWhenSpecified>();
             await VerifyFieldAsync("Field1", true, true, "hello");
             Verify(true);
         }
 
-        public class CScopedOnlyWhenSpecified : DIObjectGraphBase<object>
+        public class CScopedOnlyWhenSpecified
         {
             [Concurrent(true)]
             public static Task<string> Field1(IServiceProvider services) => Task.FromResult<string>("hello");
@@ -525,13 +526,13 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public async Task InheritsConcurrent()
         {
-            Configure<CInheritsConcurrent, object>();
+            Configure<CInheritsConcurrent>();
             await VerifyFieldAsync("Field1", true, true, "hello");
             Verify(true);
         }
 
         [Concurrent(true)]
-        public class CInheritsConcurrent : DIObjectGraphBase<object>
+        public class CInheritsConcurrent
         {
             public static Task<string> Field1(IServiceProvider services) => Task.FromResult<string>("hello");
         }
@@ -539,13 +540,13 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public async Task InheritedConcurrentOverridable()
         {
-            Configure<CInheritedConcurrentOverridable, object>();
+            Configure<CInheritedConcurrentOverridable>();
             await VerifyFieldAsync("Field1", true, false, "hello");
             Verify(false);
         }
 
         [Concurrent(true)]
-        public class CInheritedConcurrentOverridable : DIObjectGraphBase<object>
+        public class CInheritedConcurrentOverridable
         {
             [Concurrent(Concurrent = false)]
             public static Task<string> Field1(IServiceProvider services) => Task.FromResult<string>("hello");
@@ -554,12 +555,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public async Task RemoveAsyncFromName()
         {
-            Configure<CRemoveAsyncFromName, object>();
+            Configure<CRemoveAsyncFromName>();
             await VerifyFieldAsync("Field1", true, true, "hello");
             Verify(false);
         }
 
-        public class CRemoveAsyncFromName : DIObjectGraphBase<object>
+        public class CRemoveAsyncFromName
         {
             public static Task<string> Field1Async() => Task.FromResult("hello");
         }
@@ -567,13 +568,13 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void SkipVoidMembers()
         {
-            Configure<CSkipVoidMembers, object>();
+            Configure<CSkipVoidMembers>();
             _graphType.Fields.Find("Field1").ShouldBeNull();
             _graphType.Fields.Find("Field2").ShouldBeNull();
             _graphType.Fields.Find("Field3").ShouldNotBeNull();
         }
 
-        public class CSkipVoidMembers : DIObjectGraphBase<object>
+        public class CSkipVoidMembers
         {
             public static Task Field1() => Task.CompletedTask;
             public static void Field2() { }
@@ -583,12 +584,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void SkipNullName()
         {
-            Configure<CSkipNullName, object>();
+            Configure<CSkipNullName>();
             _graphType.Fields.Find("Field1").ShouldBeNull();
             _graphType.Fields.Find("Field2").ShouldNotBeNull();
         }
 
-        public class CSkipNullName : DIObjectGraphBase<object>
+        public class CSkipNullName
         {
             [Name(null)]
             public static string Field1() => "hello";
@@ -598,12 +599,12 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void Ignore()
         {
-            Configure<CIgnore, object>();
+            Configure<CIgnore>();
             _graphType.Fields.Find("Field1").ShouldBeNull();
             _graphType.Fields.Find("Field2").ShouldNotBeNull();
         }
 
-        public class CIgnore : DIObjectGraphBase<object>
+        public class CIgnore
         {
             [Ignore]
             public static string Field1() => "hello";
@@ -613,13 +614,13 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void AddsMetadata()
         {
-            Configure<CAddsMetadata, object>();
+            Configure<CAddsMetadata>();
             var field = VerifyField("Field1", true, false, "hello");
             field.GetMetadata<string>("test").ShouldBe("value");
             Verify(false);
         }
 
-        public class CAddsMetadata : DIObjectGraphBase<object>
+        public class CAddsMetadata
         {
             [Metadata("test", "value")]
             public static string Field1() => "hello";
@@ -628,13 +629,13 @@ namespace DIObjectGraphTypeTests
         [Fact]
         public void AddsInheritedMetadata()
         {
-            Configure<CAddsInheritedMetadata, object>();
+            Configure<CAddsInheritedMetadata>();
             var field = VerifyField("Field1", true, false, "hello");
             field.GetMetadata<string>("test").ShouldBe("value2");
             Verify(false);
         }
 
-        public class CAddsInheritedMetadata : DIObjectGraphBase<object>
+        public class CAddsInheritedMetadata
         {
             [InheritedMetadata("value2")]
             public static string Field1() => "hello";
@@ -658,12 +659,12 @@ namespace DIObjectGraphTypeTests
         [InlineData("Field10", typeof(GraphQLClrOutputTypeReference<string>))]
         public void SupportsDataLoader(string fieldName, Type graphType)
         {
-            Configure<CSupportsDataLoader, object>(true);
+            Configure<CSupportsDataLoader>();
             VerifyField<object>(fieldName, graphType, false, null);
             Verify(false);
         }
 
-        public class CSupportsDataLoader : DIObjectGraphBase<object>
+        public class CSupportsDataLoader
         {
             public IDataLoaderResult<string> Field1() => null;
             [Required]

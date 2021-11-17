@@ -100,7 +100,7 @@ namespace GraphQL.DI
         /// struct containing type information necessary to select a graph type.
         /// </summary>
         protected virtual TypeInformation GetTypeInformation(PropertyInfo propertyInfo)
-            => GraphTypeHelper.GetTypeInformation(propertyInfo, GetNullabilityInformation);
+            => GraphTypeHelper.GetTypeInformation(propertyInfo, true, GetNullabilityInformation);
 
         /// <summary>
         /// Apply <see cref="RequiredAttribute"/>, <see cref="OptionalAttribute"/>, <see cref="RequiredListAttribute"/>,

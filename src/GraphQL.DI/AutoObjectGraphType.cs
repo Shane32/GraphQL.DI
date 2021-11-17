@@ -30,6 +30,13 @@ namespace GraphQL.DI
         {
             GraphTypeHelper.ConfigureGraph<TSourceType>(this, GetDefaultName);
 
+            //check if there is a default concurrency setting
+            var concurrentAttribute = typeof(TSourceType).GetCustomAttribute<ConcurrentAttribute>();
+            if (concurrentAttribute != null) {
+                DefaultConcurrent = true;
+                DefaultCreateScope = concurrentAttribute.CreateNewScope;
+            }
+
             GraphTypeHelper.AddFields(this, CreateFieldTypeList());
         }
 
@@ -128,7 +135,7 @@ namespace GraphQL.DI
         /// struct containing type information necessary to select a graph type.
         /// </summary>
         protected virtual TypeInformation GetTypeInformation(PropertyInfo propertyInfo)
-            => GraphTypeHelper.GetTypeInformation(propertyInfo, GetNullabilityInformation);
+            => GraphTypeHelper.GetTypeInformation(propertyInfo, false, GetNullabilityInformation);
 
         /// <summary>
         /// Apply <see cref="RequiredAttribute"/>, <see cref="OptionalAttribute"/>, <see cref="RequiredListAttribute"/>,
@@ -138,7 +145,7 @@ namespace GraphQL.DI
         /// attributes to change graph type selection behavior.
         /// </summary>
         protected virtual TypeInformation ApplyAttributes(TypeInformation typeInformation)
-            => typeInformation.ApplyAttributes(typeInformation.MemberInfo);
+            => typeInformation.ApplyAttributes(typeInformation.MemberInfo is PropertyInfo propertyInfo ? propertyInfo : typeInformation.IsInputType ? (ICustomAttributeProvider)typeInformation.ParameterInfo! : typeInformation.MemberInfo);
 
         /// <summary>
         /// Returns a GraphQL input type for a specified CLR type
