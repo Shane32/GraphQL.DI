@@ -149,7 +149,7 @@ namespace DIObjectGraphBaseTests
         [Fact]
         public void RFC_Operation()
         {
-            var obj = new Operation(default);
+            var obj = new Operation(default, new SelectionSet());
             _mockContext.Setup(x => x.Operation).Returns(obj);
             _graphContext.Operation.ShouldBe(obj);
         }

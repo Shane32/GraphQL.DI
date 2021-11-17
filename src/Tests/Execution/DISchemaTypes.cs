@@ -24,7 +24,7 @@ namespace Execution
 
         private class MySchemaTypes : DISchemaTypes
         {
-            public MySchemaTypes() : base(new Schema(), Mock.Of<IServiceProvider>()) { }
+            public MySchemaTypes() : base(new Schema(), Mock.Of<IServiceProvider>(), true, true) { }
 
             public new Type GetGraphTypeFromClrType(Type clrType, bool isInputType, List<(Type ClrType, Type GraphType)> typeMappings)
                 => base.GetGraphTypeFromClrType(clrType, isInputType, typeMappings);

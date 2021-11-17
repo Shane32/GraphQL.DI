@@ -106,7 +106,7 @@ namespace Execution
             public IExecutionStrategy TestSelectExecutionStrategy(OperationType operationType)
             {
                 var context = new ExecutionContext();
-                context.Operation = new Operation(new NameNode("test"));
+                context.Operation = new Operation(new NameNode("test"), new SelectionSet());
                 context.Operation.OperationType = operationType;
                 return base.SelectExecutionStrategy(context);
             }

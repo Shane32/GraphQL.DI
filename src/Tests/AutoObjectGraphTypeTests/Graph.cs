@@ -3,22 +3,13 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reflection;
 using GraphQL.DI;
-using GraphQL.Types;
 using Shouldly;
 using Xunit;
 
-namespace AutoInputObjectGraphTypeTests
+namespace AutoObjectGraphTypeTests
 {
-    public class Graph
+    public class Graph : AutoObjectGraphTypeTestBase
     {
-        private IInputObjectGraphType _graphType;
-
-        private IInputObjectGraphType Configure<TSourceType>()
-        {
-            _graphType = new AutoInputObjectGraphType<TSourceType>();
-            return _graphType;
-        }
-
         [Fact]
         public void GraphName()
         {
@@ -29,20 +20,12 @@ namespace AutoInputObjectGraphTypeTests
         public class CGraphName { }
 
         [Fact]
-        public void DefaultGraphName()
+        public void GraphDefaultName()
         {
-            Configure<CDefault>().Name.ShouldBe("CDefault");
+            Configure<CGraphDefaultName>().Name.ShouldBe("CGraphDefaultName");
         }
 
-        public class CDefault { }
-
-        [Fact]
-        public void DefaultGraphNameInputModel()
-        {
-            Configure<CDefaultInputModel>().Name.ShouldBe("CDefaultInput");
-        }
-
-        public class CDefaultInputModel { }
+        public class CGraphDefaultName { }
 
         [Fact]
         public void GraphDescription()
@@ -80,9 +63,9 @@ namespace AutoInputObjectGraphTypeTests
             test.Fields.Count.ShouldBe(0);
         }
 
-        public class CCanOverrideMembersGraphType : AutoInputObjectGraphType<CCanOverrideMembers>
+        public class CCanOverrideMembersGraphType : AutoObjectGraphType<CCanOverrideMembers>
         {
-            protected override IEnumerable<PropertyInfo> GetPropertiesToProcess() => Array.Empty<PropertyInfo>();
+            protected override IEnumerable<MethodInfo> GetMethodsToProcess() => Array.Empty<MethodInfo>();
         }
 
         public class CCanOverrideMembers
