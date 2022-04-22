@@ -1,6 +1,6 @@
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Linq;
+using GraphQL.Types;
 
 namespace GraphQL.DI
 {
@@ -8,8 +8,8 @@ namespace GraphQL.DI
     /// Marks a method's return graph type to be a specified DI graph type.
     /// Useful when the return type cannot be inferred (often when it is of type <see cref="object"/>).
     /// </summary>
-    [AttributeUsage(AttributeTargets.Method, Inherited = false)]
-    public class DIGraphAttribute : Attribute
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Field | AttributeTargets.Property)]
+    public class DIGraphAttribute : GraphQLAttribute
     {
         /// <summary>
         /// Marks a method's return graph type to be a specified DI graph type.
@@ -18,6 +18,19 @@ namespace GraphQL.DI
         public DIGraphAttribute(Type graphBaseType)
         {
             GraphBaseType = graphBaseType;
+        }
+
+        /// <inheritdoc/>
+        public override void Modify(TypeInformation typeInformation)
+        {
+            if (typeInformation.IsInputType)
+                return;
+            var iface = GraphBaseType.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IDIObjectGraphBase<>));
+            if (iface != null) {
+                typeInformation.GraphType = typeof(DIObjectGraphType<,>).MakeGenericType(GraphBaseType, iface.GetGenericArguments()[0]);
+            } else {
+                throw new InvalidOperationException($"Type '{GraphBaseType.Name}' does not implement {nameof(IDIObjectGraphBase)}<TSource>; check {nameof(DIGraphAttribute)} attribute marked on '{typeInformation.MemberInfo.DeclaringType.Name}.{typeInformation.MemberInfo.Name}'.");
+            }
         }
 
         /// <summary>

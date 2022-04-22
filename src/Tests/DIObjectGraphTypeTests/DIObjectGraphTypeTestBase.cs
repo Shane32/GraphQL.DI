@@ -66,10 +66,9 @@ namespace DIObjectGraphTypeTests
             var field = _graphType.Fields.Find(fieldName);
             field.ShouldNotBeNull();
             field.Type.ShouldBe(fieldGraphType);
-            field.ShouldBeOfType<DIFieldType>().Concurrent.ShouldBe(concurrent);
             field.Resolver.ShouldNotBeNull();
             _contextMock.Setup(x => x.FieldDefinition).Returns(field);
-            field.Resolver.Resolve(context).ShouldBe(returnValue);
+            field.Resolver.ResolveAsync(context).Result.ShouldBe(returnValue);
             _arguments.Clear();
             return field;
         }
@@ -82,12 +81,9 @@ namespace DIObjectGraphTypeTests
             var field = _graphType.Fields.Find(fieldName);
             field.ShouldNotBeNull();
             field.Type.ShouldBe(typeof(T).GetGraphTypeFromType(nullable, TypeMappingMode.OutputType));
-            field.ShouldBeOfType<DIFieldType>().Concurrent.ShouldBe(concurrent);
             field.Resolver.ShouldNotBeNull();
             _contextMock.Setup(x => x.FieldDefinition).Returns(field);
-            var ret = field.Resolver.Resolve(context);
-            var taskRet = ret.ShouldBeOfType<Task<T>>();
-            var final = await taskRet;
+            var final = await field.Resolver.ResolveAsync(context);
             final.ShouldBe(returnValue);
             _arguments.Clear();
             return field;

@@ -13,8 +13,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GraphQL.DataLoader" Version="4.0.2" />
-    <PackageReference Include="GraphQL.SystemTextJson" Version="4.0.2" />
+    <PackageReference Include="GraphQL.DataLoader" Version="5.1.1" />
+    <PackageReference Include="GraphQL.SystemTextJson" Version="5.1.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.7.1" />
     <PackageReference Include="Moq" Version="4.16.1" />
     <PackageReference Include="Shouldly" Version="4.0.3" />

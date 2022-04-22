@@ -1,6 +1,10 @@
 using EfLocalDb;
+using GraphQL;
+using GraphQL.AspNetCore3;
 using GraphQL.DI;
+using GraphQL.MicrosoftDI;
 using GraphQL.Server;
+using GraphQL.SystemTextJson;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -29,25 +33,22 @@ namespace Sample
         {
             services.AddRazorPages();
 
-            services.AddGraphQL(opts => {
-                opts.UnhandledExceptionDelegate = e => {
-                    Debug.WriteLine($"Unhandled exception:\n{e.Exception}\n");
-                };
-            })
+            services.AddGraphQL(b => b
+                .ConfigureExecutionOptions(opts => opts.UnhandledExceptionDelegate = async e => Debug.WriteLine($"Unhandled exception:\n{e.Exception}\n"))
                 .AddSystemTextJson()
-                .AddGraphTypes();
-            services.AddSingleton<DIDocumentExecuter>();
+                .AddDIGraphTypes()
+                .AddGraphTypes());
             services.AddSingleton<TodoSchema>();
-            foreach (var type in typeof(TodoSchema).Assembly.GetTypes().Where(x => x.IsClass && !x.IsAbstract && !x.IsGenericTypeDefinition)) {
-                var baseType = type.BaseType;
-                while (baseType != null) {
-                    if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(DIObjectGraphBase<>)) {
-                        services.AddScoped(type);
-                        break;
-                    }
-                    baseType = baseType.BaseType;
-                }
-            }
+            //foreach (var type in typeof(TodoSchema).Assembly.GetTypes().Where(x => x.IsClass && !x.IsAbstract && !x.IsGenericTypeDefinition)) {
+            //    var baseType = type.BaseType;
+            //    while (baseType != null) {
+            //        if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(DIObjectGraphBase<>)) {
+            //            services.AddScoped(type);
+            //            break;
+            //        }
+            //        baseType = baseType.BaseType;
+            //    }
+            //}
 
             //construct temporary database with scoped dbcontext instances
             services.AddSingleton(_ => new SqlInstance<TodoDbContext>(builder => new TodoDbContext(builder.Options)));
@@ -76,11 +77,8 @@ namespace Sample
 
             app.UseAuthorization();
 
-            //GET calls to /graphql
-            var graphQlPath = new Microsoft.AspNetCore.Http.PathString("/graphql");
-            app.MapWhen(context => context.Request.Method == "GET" && context.Request.Path.Equals(graphQlPath, StringComparison.OrdinalIgnoreCase), app2 => app2.UseGraphQLGraphiQL("/graphql"));
-            //POST calls to /graphql
             app.UseGraphQL<TodoSchema>();
+            app.UseGraphQLGraphiQL();
 
             app.UseEndpoints(endpoints =>
             {

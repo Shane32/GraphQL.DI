@@ -1,7 +1,6 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Reflection;
+using GraphQL;
 using GraphQL.DI;
 using Shouldly;
 using Xunit;
@@ -74,18 +73,6 @@ namespace DIObjectGraphTypeTests
 
         [Metadata("test", "value")]
         public class CGraphMetadata : DIObjectGraphBase { }
-
-        [Fact]
-        public void CanOverrideMembers()
-        {
-            var test = new CCanOverrideMembersGraphType();
-            test.Fields.Count.ShouldBe(0);
-        }
-
-        public class CCanOverrideMembersGraphType : DIObjectGraphType<CCanOverrideMembers>
-        {
-            protected override IEnumerable<MethodInfo> GetMethodsToProcess() => Array.Empty<MethodInfo>();
-        }
 
         public class CCanOverrideMembers : DIObjectGraphBase
         {
