@@ -1,9 +1,9 @@
+using System.Diagnostics;
 using EfLocalDb;
 using GraphQL;
 using GraphQL.AspNetCore3;
 using GraphQL.DI;
 using GraphQL.MicrosoftDI;
-using GraphQL.Server;
 using GraphQL.SystemTextJson;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -11,11 +11,6 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Sample.DataLoaders;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Sample
 {
@@ -34,21 +29,12 @@ namespace Sample
             services.AddRazorPages();
 
             services.AddGraphQL(b => b
+                .AddSchema<TodoSchema>()
                 .ConfigureExecutionOptions(opts => opts.UnhandledExceptionDelegate = async e => Debug.WriteLine($"Unhandled exception:\n{e.Exception}\n"))
                 .AddSystemTextJson()
                 .AddDIGraphTypes()
+                .AddClrTypeMappings()
                 .AddGraphTypes());
-            services.AddSingleton<TodoSchema>();
-            //foreach (var type in typeof(TodoSchema).Assembly.GetTypes().Where(x => x.IsClass && !x.IsAbstract && !x.IsGenericTypeDefinition)) {
-            //    var baseType = type.BaseType;
-            //    while (baseType != null) {
-            //        if (baseType.IsGenericType && baseType.GetGenericTypeDefinition() == typeof(DIObjectGraphBase<>)) {
-            //            services.AddScoped(type);
-            //            break;
-            //        }
-            //        baseType = baseType.BaseType;
-            //    }
-            //}
 
             //construct temporary database with scoped dbcontext instances
             services.AddSingleton(_ => new SqlInstance<TodoDbContext>(builder => new TodoDbContext(builder.Options)));

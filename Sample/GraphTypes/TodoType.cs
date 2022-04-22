@@ -1,7 +1,4 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using GraphQL.DataLoader;
 using GraphQL.DI;
 using Sample.DataLoaders;
@@ -31,12 +28,13 @@ namespace Sample.GraphTypes
         public static bool Completed(Todo source) => source.Completed;
         public static DateTime? CompletedOn(Todo source) => source.CompletionDate;
 
-        public IDataLoaderResult<Person> CompletedBy(Todo source)
+        // here it is using an instance field "Source"
+        public IDataLoaderResult<Person> CompletedBy()
         {
-            if (!source.CompletedByPersonId.HasValue)
+            if (!Source.CompletedByPersonId.HasValue)
                 return null;
 
-            return _personDataLoader.LoadAsync(source.CompletedByPersonId.Value);
+            return _personDataLoader.LoadAsync(Source.CompletedByPersonId.Value);
         }
     }
 }
