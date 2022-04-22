@@ -1,13 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using GraphQL;
 using GraphQL.DI;
 using GraphQL.Execution;
 using GraphQL.Instrumentation;
-using GraphQL.Language.AST;
 using GraphQL.Types;
+using GraphQLParser.AST;
 using Moq;
 using Shouldly;
 using Xunit;
@@ -77,7 +76,7 @@ namespace DIObjectGraphBaseTests
         [Fact]
         public void RFC_FieldAst()
         {
-            var fieldAst = new Field(default, default);
+            var fieldAst = new GraphQLField();
             _mockContext.Setup(x => x.FieldAst).Returns(fieldAst);
             _graphContext.FieldAst.ShouldBe(fieldAst);
         }
@@ -141,7 +140,7 @@ namespace DIObjectGraphBaseTests
         [Fact]
         public void RFC_Document()
         {
-            var obj = new Document();
+            var obj = new GraphQLDocument();
             _mockContext.Setup(x => x.Document).Returns(obj);
             _graphContext.Document.ShouldBe(obj);
         }
@@ -149,7 +148,7 @@ namespace DIObjectGraphBaseTests
         [Fact]
         public void RFC_Operation()
         {
-            var obj = new Operation(default, new SelectionSet());
+            var obj = new GraphQLOperationDefinition();
             _mockContext.Setup(x => x.Operation).Returns(obj);
             _graphContext.Operation.ShouldBe(obj);
         }
@@ -157,7 +156,7 @@ namespace DIObjectGraphBaseTests
         [Fact]
         public void RFC_Variables()
         {
-            var obj = new Variables();
+            var obj = new GraphQL.Validation.Variables();
             _mockContext.Setup(x => x.Variables).Returns(obj);
             _graphContext.Variables.ShouldBe(obj);
         }
@@ -197,17 +196,25 @@ namespace DIObjectGraphBaseTests
         [Fact]
         public void RFC_SubFields()
         {
-            var obj = new Dictionary<string, Field>();
+            var obj = new Dictionary<string, (GraphQLField, FieldType)>();
             _mockContext.Setup(x => x.SubFields).Returns(obj);
             _graphContext.SubFields.ShouldBe(obj);
         }
 
         [Fact]
-        public void RFC_Extensions()
+        public void RFC_InputExtensions()
+        {
+            var obj = Mock.Of<IReadOnlyDictionary<string, object>>();
+            _mockContext.Setup(x => x.InputExtensions).Returns(obj);
+            _graphContext.InputExtensions.ShouldBe(obj);
+        }
+
+        [Fact]
+        public void RFC_OutputExtensions()
         {
             var obj = Mock.Of<IDictionary<string, object>>();
-            _mockContext.Setup(x => x.Extensions).Returns(obj);
-            _graphContext.Extensions.ShouldBe(obj);
+            _mockContext.Setup(x => x.OutputExtensions).Returns(obj);
+            _graphContext.OutputExtensions.ShouldBe(obj);
         }
 
         [Fact]

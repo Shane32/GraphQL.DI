@@ -1,8 +1,7 @@
 using System;
-using System.ComponentModel;
 using System.Threading.Tasks;
+using GraphQL;
 using GraphQL.DI;
-using GraphQL.Types;
 using Shouldly;
 using Xunit;
 
@@ -44,7 +43,7 @@ namespace DIObjectGraphTypeTests
 
         public class CScopedService : DIObjectGraphBase
         {
-            [Concurrent(true)]
+            [Scoped]
             public static Task<string> Field1([FromServices] string arg) => Task.FromResult(arg);
         }
     }
