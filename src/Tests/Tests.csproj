@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <NoWarn>$(NoWarn);1701;1702;1591;IDE1006;IDE0060;0618;CA1707;CA1822</NoWarn>
+    <NoWarn>$(NoWarn);1701;1702;1591;IDE1006;IDE0060;0618;CA1707;CA1822;CS1591</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
