@@ -21,27 +21,19 @@ jobs:
     steps:
       - name: Checkout source
         uses: actions/checkout@v2
-      - name: Use .NET Core 2.1 LTS SDK
-        uses: actions/setup-dotnet@v1
+      - name: Use .NET Core SDK
+        uses: actions/setup-dotnet@v2
         with:
-          dotnet-version: '2.1.x'
-      - name: Use .NET Core 3.1 LTS SDK
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '3.1.x'
-      - name: Use .NET Core 5.0 SDK
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '5.0.x'
+          dotnet-version: 6.x
           source-url: https://nuget.pkg.github.com/Shane32/index.json
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
       - name: Install dependencies
         run: dotnet restore
       - name: Build solution [Release]
-        run: dotnet build --no-restore -c Release -p:NoWarn=CS1591
+        run: dotnet build --no-restore -c Release
       - name: Build solution [Debug]
-        run: dotnet build --no-restore -p:NoWarn=CS1591
+        run: dotnet build --no-restore
       - name: Test solution [Debug]
         run: dotnet test --no-restore --no-build -p:CollectCoverage=true -p:CoverletOutputFormat=lcov -p:CoverletOutput=../../${{ matrix.os }}.lcov.info
       # ==== code coverage reports (ubuntu-latest only) ====

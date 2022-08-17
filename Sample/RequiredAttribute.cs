@@ -1,9 +1,8 @@
 using GraphQL.Types;
 
-namespace Sample
+namespace Sample;
+
+public class RequiredAttribute : GraphQL.GraphQLAttribute
 {
-    public class RequiredAttribute : GraphQL.GraphQLAttribute
-    {
-        public override void Modify(TypeInformation typeInformation) => typeInformation.IsNullable = false;
-    }
+    public override void Modify(TypeInformation typeInformation) => typeInformation.IsNullable = false;
 }

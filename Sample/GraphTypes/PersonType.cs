@@ -1,18 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using GraphQL.Types;
 using Sample.DbModels;
 
-namespace Sample.GraphTypes
+namespace Sample.GraphTypes;
+
+public class PersonType : ObjectGraphType<Person>
 {
-    public class PersonType : ObjectGraphType<Person>
+    public PersonType()
     {
-        public PersonType()
-        {
-            Field(x => x.Id);
-            Field(x => x.Name);
-        }
+        Field(x => x.Id);
+        Field(x => x.Name);
     }
 }
