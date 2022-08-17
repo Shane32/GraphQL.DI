@@ -1,15 +1,13 @@
-using System;
 using GraphQL.Types;
 using Sample.GraphTypes;
 
-namespace Sample
+namespace Sample;
+
+public class TodoSchema : Schema
 {
-    public class TodoSchema : Schema
+    public TodoSchema(IServiceProvider serviceProvider, QueryType query, MutationType mutation) : base(serviceProvider)
     {
-        public TodoSchema(IServiceProvider serviceProvider, QueryType query, MutationType mutation) : base(serviceProvider)
-        {
-            Query = query;
-            Mutation = mutation;
-        }
+        Query = query;
+        Mutation = mutation;
     }
 }

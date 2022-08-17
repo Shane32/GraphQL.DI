@@ -5,14 +5,12 @@
     <Description>
       An extension to the graphql-dotnet library to allow easy creation of GraphQL endpoints in a style similar to ASP.Net Core controllers
     </Description>
-    <Nullable>enable</Nullable>
     <RootNamespace>GraphQL.DI</RootNamespace>
+    <IsPackable>true</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="GraphQL" Version="5.1.1" />
-    <PackageReference Include="GraphQL.MicrosoftDI" Version="5.1.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="2.0.0" />
+    <PackageReference Include="GraphQL.MicrosoftDI" Version="$(GraphQLVersion)" />
   </ItemGroup>
 
 </Project>

@@ -1,97 +1,92 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Threading.Tasks;
 using GraphQL.Types;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace GraphQL.DI
+namespace GraphQL.DI;
+
+/// <summary>
+/// Wraps a <see cref="DIObjectGraphBase"/> graph type for use with GraphQL. This class should be registered as a singleton
+/// within your dependency injection provider.
+/// </summary>
+public class DIObjectGraphType<TDIGraph> : DIObjectGraphType<TDIGraph, object> where TDIGraph : IDIObjectGraphBase<object>
 {
-    /// <summary>
-    /// Wraps a <see cref="DIObjectGraphBase"/> graph type for use with GraphQL. This class should be registered as a singleton
-    /// within your dependency injection provider.
-    /// </summary>
-    public class DIObjectGraphType<TDIGraph> : DIObjectGraphType<TDIGraph, object> where TDIGraph : IDIObjectGraphBase<object>
+}
+
+/// <summary>
+/// Wraps a <see cref="DIObjectGraphBase{TSource}"/> graph type for use with GraphQL. This class should be registered as a singleton
+/// within your dependency injection provider.
+/// </summary>
+public class DIObjectGraphType<TDIGraph, TSource> : AutoRegisteringObjectGraphType<TSource>
+    where TDIGraph : IDIObjectGraphBase<TSource>
+{
+    /// <inheritdoc/>
+    protected override void ConfigureGraph()
     {
+        // do not configure attributes set on TSource
+        // base.ConfigureGraph();
+
+        // configure attributes set on DIObject instead
+        var name = typeof(TDIGraph).GraphQLName();
+        if (name.EndsWith("Graph", StringComparison.Ordinal) && name.Length > 5)
+            name = name.Substring(0, name.Length - 5);
+        Name = name;
+        Description ??= typeof(TDIGraph).Description();
+        DeprecationReason ??= typeof(TDIGraph).ObsoleteMessage();
+        var attributes = typeof(TDIGraph).GetCustomAttributes<GraphQLAttribute>();
+        foreach (var attr in attributes) {
+            attr.Modify(this);
+        }
     }
 
-    /// <summary>
-    /// Wraps a <see cref="DIObjectGraphBase{TSource}"/> graph type for use with GraphQL. This class should be registered as a singleton
-    /// within your dependency injection provider.
-    /// </summary>
-    public class DIObjectGraphType<TDIGraph, TSource> : AutoRegisteringObjectGraphType<TSource>
-        where TDIGraph : IDIObjectGraphBase<TSource>
+    // only process methods declared directly on TDIGraph -- not anything declared on TSource
+    /// <inheritdoc/>
+    protected override IEnumerable<MemberInfo> GetRegisteredMembers()
     {
-        /// <inheritdoc/>
-        protected override void ConfigureGraph()
+        // only methods are supported
+        var methods = typeof(TDIGraph).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(x =>
+                !x.ContainsGenericParameters &&               // exclude methods with open generics
+                !x.IsSpecialName &&                           // exclude methods generated for properties
+                x.ReturnType != typeof(void) &&               // exclude methods which do not return a value
+                x.ReturnType != typeof(Task) &&               // exclude methods which do not return a value
+                x.GetBaseDefinition() == x &&                 // exclude methods which override an inherited class' method (e.g. GetHashCode)
+                                                              // exclude methods generated for record types: bool Equals(TSourceType)
+                !(x.Name == "Equals" && !x.IsStatic && x.GetParameters().Length == 1 && x.GetParameters()[0].ParameterType == typeof(TDIGraph) && x.ReturnType == typeof(bool)) &&
+                x.Name != "<Clone>$");                        // exclude methods generated for record types
+        return methods;
+    }
+
+    // each field resolver will build a new instance of DIObject
+    /// <inheritdoc/>
+    protected override LambdaExpression BuildMemberInstanceExpression(MemberInfo memberInfo)
+        => (Expression<Func<IResolveFieldContext, TDIGraph>>)((IResolveFieldContext context) => MemberInstanceFunc(context));
+
+    /// <inheritdoc/>
+    private static TDIGraph MemberInstanceFunc(IResolveFieldContext context)
+    {
+        // create a new instance of DIObject, filling in any constructor arguments from DI
+        var graph = ActivatorUtilities.GetServiceOrCreateInstance<TDIGraph>(context.RequestServices ?? throw new MissingRequestServicesException());
+        // set the context
+        graph.Context = context;
+        // return the object
+        return graph;
+    }
+
+    /// <inheritdoc/>
+    protected override ArgumentInformation GetArgumentInformation<TParameterType>(FieldType fieldType, ParameterInfo parameterInfo)
+    {
+        var typeInformation = GetTypeInformation(parameterInfo);
+        var argumentInfo = new ArgumentInformation(parameterInfo, typeof(TSource), fieldType, typeInformation);
+        if (argumentInfo.ParameterInfo.ParameterType == typeof(IServiceProvider))
         {
-            // do not configure attributes set on TSource
-            // base.ConfigureGraph();
-
-            // configure attributes set on DIObject instead
-            var name = typeof(TDIGraph).GraphQLName();
-            if (name.EndsWith("Graph") && name.Length > 5)
-                name = name.Substring(0, name.Length - 5);
-            Name = name;
-            Description ??= typeof(TDIGraph).Description();
-            DeprecationReason ??= typeof(TDIGraph).ObsoleteMessage();
-            var attributes = typeof(TDIGraph).GetCustomAttributes<GraphQLAttribute>();
-            foreach (var attr in attributes) {
-                attr.Modify(this);
-            }
+            argumentInfo.SetDelegate(context => context.RequestServices ?? throw new MissingRequestServicesException());
         }
-
-        // only process methods declared directly on TDIGraph -- not anything declared on TSource
-        /// <inheritdoc/>
-        protected override IEnumerable<MemberInfo> GetRegisteredMembers()
+        if (argumentInfo.ParameterInfo.Name == "source" && argumentInfo.ParameterInfo.ParameterType == typeof(TSource))
         {
-            // only methods are supported
-            var methods = typeof(TDIGraph).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly)
-                .Where(x =>
-                    !x.ContainsGenericParameters &&               // exclude methods with open generics
-                    !x.IsSpecialName &&                           // exclude methods generated for properties
-                    x.ReturnType != typeof(void) &&               // exclude methods which do not return a value
-                    x.ReturnType != typeof(Task) &&               // exclude methods which do not return a value
-                    x.GetBaseDefinition() == x &&                 // exclude methods which override an inherited class' method (e.g. GetHashCode)
-                                                                  // exclude methods generated for record types: bool Equals(TSourceType)
-                    !(x.Name == "Equals" && !x.IsStatic && x.GetParameters().Length == 1 && x.GetParameters()[0].ParameterType == typeof(TDIGraph) && x.ReturnType == typeof(bool)) &&
-                    x.Name != "<Clone>$");                        // exclude methods generated for record types
-            return methods;
+            argumentInfo.SetDelegate(context => (TSource?)context.Source);
         }
-
-        // each field resolver will build a new instance of DIObject
-        /// <inheritdoc/>
-        protected override LambdaExpression BuildMemberInstanceExpression(MemberInfo memberInfo)
-            => (Expression<Func<IResolveFieldContext, TDIGraph>>)((IResolveFieldContext context) => MemberInstanceFunc(context));
-
-        /// <inheritdoc/>
-        private TDIGraph MemberInstanceFunc(IResolveFieldContext context)
-        {
-            // create a new instance of DIObject, filling in any constructor arguments from DI
-            var graph = ActivatorUtilities.GetServiceOrCreateInstance<TDIGraph>(context.RequestServices ?? throw new MissingRequestServicesException());
-            // set the context
-            graph.Context = context;
-            // return the object
-            return graph;
-        }
-
-        /// <inheritdoc/>
-        protected override ArgumentInformation GetArgumentInformation<TParameterType>(FieldType fieldType, ParameterInfo parameterInfo)
-        {
-            var typeInformation = GetTypeInformation(parameterInfo);
-            var argumentInfo = new ArgumentInformation(parameterInfo, typeof(TSource), fieldType, typeInformation);
-            if (argumentInfo.ParameterInfo.ParameterType == typeof(IServiceProvider))
-            {
-                argumentInfo.SetDelegate(context => context.RequestServices ?? throw new MissingRequestServicesException());
-            }
-            if (argumentInfo.ParameterInfo.Name == "source" && argumentInfo.ParameterInfo.ParameterType == typeof(TSource))
-            {
-                argumentInfo.SetDelegate(context => (TSource)context.Source);
-            }
-            argumentInfo.ApplyAttributes();
-            return argumentInfo;
-        }
+        argumentInfo.ApplyAttributes();
+        return argumentInfo;
     }
 }
