@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Globalization;
+using GraphQL.Conversion;
 
 namespace DIObjectGraphTypeTests;
 
@@ -128,8 +129,20 @@ public class Argument : DIObjectGraphTypeTestBase
     {
         Configure<CIdGraphType2, object>();
         VerifyFieldArgument("Field1", "arg", typeof(NonNullGraphType<IdGraphType>), "3");
-        VerifyField("Field1", true, false, "3");
+        InitializeSchema();
+        VerifyField("Field1", typeof(StringGraphType), false, "3");
         Verify(false);
+    }
+
+    private void InitializeSchema()
+    {
+        if (_graphType == null)
+            throw new InvalidOperationException();
+        var schema = new Schema { Query = new ObjectGraphType() { Name = "Query" } };
+        schema.Query.AddField(new FieldType { Name = "dummy", Type = typeof(StringGraphType) });
+        schema.RegisterType(_graphType);
+        schema.NameConverter = DefaultNameConverter.Instance;
+        schema.Initialize();
     }
 
     public class CIdGraphType2 : DIObjectGraphBase
@@ -160,7 +173,7 @@ public class Argument : DIObjectGraphTypeTestBase
         Configure<CDefaultValue, object>();
         VerifyFieldArgument("Field1", "arg1", false, 2);
         VerifyField("Field1", false, false, 2);
-        VerifyFieldArgument<int>("Field2", "arg2", false);
+        VerifyFieldArgument("Field2", "arg2", false, 5); // as of version 8, IResolveFieldContext.Arguments include the default values
         VerifyField("Field2", false, false, 5);
         Verify(false);
     }
