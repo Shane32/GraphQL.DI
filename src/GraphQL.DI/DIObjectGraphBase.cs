@@ -54,6 +54,7 @@ public abstract class DIObjectGraphBase<TSource> : IDIObjectGraphBase<TSource>, 
     Dictionary<string, (GraphQLField Field, FieldType FieldType)>? IResolveFieldContext.SubFields => Context.SubFields;
     IReadOnlyDictionary<string, object?> IResolveFieldContext.InputExtensions => Context.InputExtensions;
     IDictionary<string, object?> IResolveFieldContext.OutputExtensions => Context.OutputExtensions;
+    IExecutionContext IResolveFieldContext.ExecutionContext => Context.ExecutionContext;
 }
 
 /// <summary>

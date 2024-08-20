@@ -66,7 +66,7 @@ public class Properties
     [Fact]
     public void RFC_FieldAst()
     {
-        var fieldAst = new GraphQLField();
+        var fieldAst = new GraphQLField(new("test"));
         _mockContext.Setup(x => x.FieldAst).Returns(fieldAst);
         _graphContext.FieldAst.ShouldBe(fieldAst);
     }
@@ -130,7 +130,7 @@ public class Properties
     [Fact]
     public void RFC_Document()
     {
-        var obj = new GraphQLDocument();
+        var obj = new GraphQLDocument(new());
         _mockContext.Setup(x => x.Document).Returns(obj);
         _graphContext.Document.ShouldBe(obj);
     }
@@ -138,7 +138,7 @@ public class Properties
     [Fact]
     public void RFC_Operation()
     {
-        var obj = new GraphQLOperationDefinition();
+        var obj = new GraphQLOperationDefinition(new(new()));
         _mockContext.Setup(x => x.Operation).Returns(obj);
         _graphContext.Operation.ShouldBe(obj);
     }

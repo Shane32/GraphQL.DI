@@ -22,8 +22,8 @@
     <IsPackable>false</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <AnalysisMode>Recommended</AnalysisMode>
-    <GraphQLVersion>7.0.0</GraphQLVersion>
-    <GraphQLAspNetCore3Version>5.0.0</GraphQLAspNetCore3Version>
+    <GraphQLVersion>8.0.0</GraphQLVersion>
+    <GraphQLAspNetCore3Version>6.0.0</GraphQLAspNetCore3Version>
   </PropertyGroup>
 
   <ItemGroup>
