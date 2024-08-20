@@ -15,7 +15,7 @@ public class Mutation : DIObjectGraphBase<object>
         _db = db;
     }
 
-    public async Task<Todo> AddTodoAsync([Required] string title, string notes, CancellationToken cancellationToken)
+    public async Task<Todo> AddTodoAsync(string title, string notes, CancellationToken cancellationToken)
     {
         var todo = new Todo {
             Title = title,
