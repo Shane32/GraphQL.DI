@@ -53,7 +53,7 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Code coverage artifacts
+          name: Code coverage artifacts for ${{ matrix.os }}
           path: |
             ${{ matrix.os }}.lcov.info
             Clover.xml
