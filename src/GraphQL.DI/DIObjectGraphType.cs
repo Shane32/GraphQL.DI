@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
 using GraphQL.Types;
@@ -63,12 +62,9 @@ public class DIObjectGraphType<TDIGraph, TSource> : AutoRegisteringObjectGraphTy
     protected override LambdaExpression BuildMemberInstanceExpression(MemberInfo memberInfo)
     {
         // use an explicit type here rather than simply LambdaExpression
-        Expression<Func<IResolveFieldContext, TDIGraph>> func;
-        if (typeof(IDisposable).IsAssignableFrom(typeof(TDIGraph))) {
-            func = (IResolveFieldContext context) => MemberInstanceDisposableFunc(context);
-        } else {
-            func = (IResolveFieldContext context) => MemberInstanceFunc(context);
-        }
+        var func = typeof(IDisposable).IsAssignableFrom(typeof(TDIGraph))
+            ? ((IResolveFieldContext context) => MemberInstanceDisposableFunc(context))
+            : (Expression<Func<IResolveFieldContext, TDIGraph>>)((IResolveFieldContext context) => MemberInstanceFunc(context));
         return func;
     }
 
@@ -102,12 +98,10 @@ public class DIObjectGraphType<TDIGraph, TSource> : AutoRegisteringObjectGraphTy
     {
         var typeInformation = GetTypeInformation(parameterInfo);
         var argumentInfo = new ArgumentInformation(parameterInfo, typeof(TSource), fieldType, typeInformation);
-        if (argumentInfo.ParameterInfo.ParameterType == typeof(IServiceProvider))
-        {
+        if (argumentInfo.ParameterInfo.ParameterType == typeof(IServiceProvider)) {
             argumentInfo.SetDelegate(context => context.RequestServices ?? throw new MissingRequestServicesException());
         }
-        if (argumentInfo.ParameterInfo.Name == "source" && argumentInfo.ParameterInfo.ParameterType == typeof(TSource))
-        {
+        if (argumentInfo.ParameterInfo.Name == "source" && argumentInfo.ParameterInfo.ParameterType == typeof(TSource)) {
             argumentInfo.SetDelegate(context => (TSource?)context.Source);
         }
         argumentInfo.ApplyAttributes();

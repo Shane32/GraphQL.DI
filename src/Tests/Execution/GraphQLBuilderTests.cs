@@ -4,8 +4,8 @@ namespace Execution;
 
 public class GraphQLBuilderTests
 {
-    private readonly Mock<IServiceRegister> _mockServiceRegister = new Mock<IServiceRegister>(MockBehavior.Strict);
-    private readonly Mock<IGraphQLBuilder> _mockGraphQLBuilder = new Mock<IGraphQLBuilder>(MockBehavior.Strict);
+    private readonly Mock<IServiceRegister> _mockServiceRegister = new(MockBehavior.Strict);
+    private readonly Mock<IGraphQLBuilder> _mockGraphQLBuilder = new(MockBehavior.Strict);
     private IGraphQLBuilder _graphQLBuilder => _mockGraphQLBuilder.Object;
 
     public GraphQLBuilderTests()

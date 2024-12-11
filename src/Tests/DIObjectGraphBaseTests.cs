@@ -7,7 +7,7 @@ public class Properties
 {
     private readonly DIObjectGraphBase _graph = new CTest();
     private IResolveFieldContext _graphContext => _graph;
-    private readonly Mock<IResolveFieldContext> _mockContext = new Mock<IResolveFieldContext>(MockBehavior.Strict);
+    private readonly Mock<IResolveFieldContext> _mockContext = new(MockBehavior.Strict);
     private IResolveFieldContext _context => _mockContext.Object;
 
     public Properties()

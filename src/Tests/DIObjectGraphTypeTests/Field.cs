@@ -325,7 +325,7 @@ public class Field : DIObjectGraphTypeTestBase
     public class CIdListType : DIObjectGraphBase<object>
     {
         [Id]
-        public static string?[]? Field1() => new[] { "hello" };
+        public static string?[]? Field1() => ["hello"];
     }
 
     [Fact]
@@ -372,7 +372,7 @@ public class Field : DIObjectGraphTypeTestBase
     public class CDIGraphListType : DIObjectGraphBase<object>
     {
         [DIGraph(typeof(CDIGraphType2))]
-        public static string?[]? Field1() => new[] { "hello" };
+        public static string?[]? Field1() => ["hello"];
     }
 
     [Fact]

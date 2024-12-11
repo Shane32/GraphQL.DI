@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <Description>
       An extension to the graphql-dotnet library to allow easy creation of GraphQL endpoints in a style similar to ASP.Net Core controllers
     </Description>

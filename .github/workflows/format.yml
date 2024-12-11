@@ -1,0 +1,24 @@
+name: Check formatting
+
+# ==== NOTE: do not rename this yml file or the run_number will be reset ====
+
+on:
+  pull_request:
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use .NET Core SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          source-url: https://nuget.pkg.github.com/Shane32/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+      - name: Install dependencies
+        run: dotnet restore
+      - name: Check formatting
+        run: |
+          dotnet format --no-restore --verify-no-changes --severity error || (echo "Run 'dotnet format' to fix issues" && exit 1)
