@@ -1,8 +1,9 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
-    <NoWarn>$(NoWarn);1701;1702;1591;IDE1006;IDE0060;0618;CA1707;CA1822;CS1591</NoWarn>
+    <RootNamespace/>
+    <NoWarn>$(NoWarn);1701;1702;1591;IDE1006;IDE0060;0618;CA1707;CA1822;CS1591;CA1861;IDE0022;IDE0021;IDE0028;CA1852</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

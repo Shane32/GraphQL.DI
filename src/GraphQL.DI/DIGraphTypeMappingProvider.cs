@@ -2,7 +2,7 @@ using GraphQL.Types;
 
 namespace GraphQL.DI;
 
-internal class DIGraphTypeMappingProvider : IGraphTypeMappingProvider
+internal sealed class DIGraphTypeMappingProvider : IGraphTypeMappingProvider
 {
     private readonly Dictionary<Type, Type> _typeDictionary;
 

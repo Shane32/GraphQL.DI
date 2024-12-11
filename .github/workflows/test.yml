@@ -21,7 +21,7 @@ jobs:
       - name: Use .NET Core SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 6.x
+          global-json-file: global.json
           source-url: https://nuget.pkg.github.com/Shane32/index.json
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
