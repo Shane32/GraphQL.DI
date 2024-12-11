@@ -19,6 +19,26 @@ public static class GraphQLBuilderExtensions
     }
 
     /// <summary>
+    /// Scans the calling assembly for classes that implement <see cref="IDIObjectGraphBase{TSource}"/>
+    /// and registers them as transients within the DI container.
+    /// </summary>
+    public static IGraphQLBuilder AddDIGraphBases(this IGraphQLBuilder builder)
+        => AddDIGraphBases(builder, Assembly.GetCallingAssembly());
+
+    /// <summary>
+    /// Scans the specified assembly for classes that implement <see cref="IDIObjectGraphBase"/>
+    /// and registers them as transients within the DI container.
+    /// </summary>
+    public static IGraphQLBuilder AddDIGraphBases(this IGraphQLBuilder builder, Assembly assembly)
+    {
+        foreach (var type in assembly.GetTypes()
+            .Where(x => x.IsClass && !x.IsAbstract && typeof(IDIObjectGraphBase).IsAssignableFrom(x))) {
+            builder.Services.TryRegister(type, type, ServiceLifetime.Transient);
+        }
+        return builder;
+    }
+
+    /// <summary>
     /// Scans the calling assembly for classes that implement <see cref="IDIObjectGraphBase{TSource}"/> and
     /// registers clr type mappings on the schema between that <see cref="DIObjectGraphType{TDIGraph, TSource}"/>
     /// (constructed from that class and its source type), and the source type.

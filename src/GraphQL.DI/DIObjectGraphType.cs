@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq.Expressions;
 using System.Reflection;
 using GraphQL.Types;
@@ -60,13 +61,36 @@ public class DIObjectGraphType<TDIGraph, TSource> : AutoRegisteringObjectGraphTy
     // each field resolver will build a new instance of DIObject
     /// <inheritdoc/>
     protected override LambdaExpression BuildMemberInstanceExpression(MemberInfo memberInfo)
-        => (Expression<Func<IResolveFieldContext, TDIGraph>>)((IResolveFieldContext context) => MemberInstanceFunc(context));
+    {
+        // use an explicit type here rather than simply LambdaExpression
+        Expression<Func<IResolveFieldContext, TDIGraph>> func;
+        if (typeof(IDisposable).IsAssignableFrom(typeof(TDIGraph))) {
+            func = (IResolveFieldContext context) => MemberInstanceDisposableFunc(context);
+        } else {
+            func = (IResolveFieldContext context) => MemberInstanceFunc(context);
+        }
+        return func;
+    }
 
     /// <inheritdoc/>
     private static TDIGraph MemberInstanceFunc(IResolveFieldContext context)
     {
         // create a new instance of DIObject, filling in any constructor arguments from DI
-        var graph = ActivatorUtilities.GetServiceOrCreateInstance<TDIGraph>(context.RequestServices ?? throw new MissingRequestServicesException());
+        var graph = ActivatorUtilities.GetServiceOrCreateInstance<TDIGraph>(context.RequestServices ?? ThrowMissingRequestServicesException());
+        // set the context
+        graph.Context = context;
+        // return the object
+        return graph;
+
+        static IServiceProvider ThrowMissingRequestServicesException() => throw new MissingRequestServicesException();
+    }
+
+    /// <inheritdoc/>
+    private static TDIGraph MemberInstanceDisposableFunc(IResolveFieldContext context)
+    {
+        // pull DIObject from dependency injection, as it is disposable and must be managed by DI
+        var graph = (context.RequestServices ?? throw new MissingRequestServicesException()).GetService<TDIGraph>()
+            ?? throw new InvalidOperationException($"Could not resolve an instance of {typeof(TDIGraph).Name} from the service provider. DI graph types that implement IDisposable must be registered in the service provider.");
         // set the context
         graph.Context = context;
         // return the object
