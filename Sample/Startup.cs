@@ -2,7 +2,8 @@ using System.Diagnostics;
 using EfLocalDb;
 using GraphQL;
 using GraphQL.AspNetCore3;
-using GraphQL.DI;
+using GraphQL.Execution;
+using GraphQLParser.AST;
 using Sample.DataLoaders;
 
 namespace Sample;
@@ -28,7 +29,8 @@ public class Startup
                 return Task.CompletedTask;
             })
             .AddSystemTextJson()
-            .AddDIGraphTypes()
+            .AddExecutionStrategy<SerialExecutionStrategy>(OperationType.Query)
+            .AddDI()
             .AddClrTypeMappings()
             .AddGraphTypes());
 
