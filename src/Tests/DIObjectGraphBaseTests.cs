@@ -223,11 +223,11 @@ public class Properties
         _graphContext.ArrayPool.ShouldBe(obj);
     }
 
-    private sealed class CTest : DIObjectGraphBase
+    private class CTest : DIObjectGraphBase
     {
     }
 
-    private sealed class CTest<T> : DIObjectGraphBase<T>
+    private class CTest<T> : DIObjectGraphBase<T>
     {
     }
 }
