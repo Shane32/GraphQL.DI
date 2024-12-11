@@ -24,6 +24,7 @@
     <AnalysisMode>Recommended</AnalysisMode>
     <GraphQLVersion>8.0.0</GraphQLVersion>
     <GraphQLAspNetCore3Version>6.0.0</GraphQLAspNetCore3Version>
+    <NuGetAuditMode>direct</NuGetAuditMode>
   </PropertyGroup>
 
   <ItemGroup>

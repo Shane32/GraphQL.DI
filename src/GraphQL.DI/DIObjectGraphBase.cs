@@ -9,6 +9,12 @@ namespace GraphQL.DI;
 /// <summary>
 /// This is a required base type of all DI-created graph types. <see cref="DIObjectGraphBase"/> may be
 /// used if the <see cref="IResolveFieldContext.Source"/> type is <see cref="object"/>.
+/// <para>
+/// If the derived class implements <see cref="IDisposable"/>, the class must be registered within the DI container.
+/// </para>
+/// <para>
+/// When registered within the DI container, the service lifetime must be <see cref="Microsoft.Extensions.DependencyInjection.ServiceLifetime.Transient">Transient</see>.
+/// </para>
 /// </summary>
 public abstract class DIObjectGraphBase<TSource> : IDIObjectGraphBase<TSource>, IResolveFieldContext<TSource>
 {
