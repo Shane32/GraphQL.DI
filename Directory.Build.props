@@ -21,10 +21,11 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <AnalysisMode>Recommended</AnalysisMode>
+    <AnalysisLevel>9.0-recommended</AnalysisLevel>
     <GraphQLVersion>8.0.0</GraphQLVersion>
-    <GraphQLAspNetCore3Version>6.0.0</GraphQLAspNetCore3Version>
+    <GraphQLAspNetCore3Version>7.0.0</GraphQLAspNetCore3Version>
     <NuGetAuditMode>direct</NuGetAuditMode>
+    <NoWarn>$(NoWarn);IDE0057;IDE0290</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

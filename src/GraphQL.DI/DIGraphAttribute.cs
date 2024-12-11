@@ -24,11 +24,9 @@ public class DIGraphAttribute : GraphQLAttribute
         if (typeInformation.IsInputType)
             return;
         var iface = GraphBaseType.GetInterfaces().FirstOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IDIObjectGraphBase<>));
-        if (iface != null) {
-            typeInformation.GraphType = typeof(DIObjectGraphType<,>).MakeGenericType(GraphBaseType, iface.GetGenericArguments()[0]);
-        } else {
-            throw new InvalidOperationException($"Type '{GraphBaseType.Name}' does not implement {nameof(IDIObjectGraphBase)}<TSource>; check {nameof(DIGraphAttribute)} attribute marked on '{typeInformation.MemberInfo.DeclaringType.Name}.{typeInformation.MemberInfo.Name}'.");
-        }
+        typeInformation.GraphType = iface != null
+            ? typeof(DIObjectGraphType<,>).MakeGenericType(GraphBaseType, iface.GetGenericArguments()[0])
+            : throw new InvalidOperationException($"Type '{GraphBaseType.Name}' does not implement {nameof(IDIObjectGraphBase)}<TSource>; check {nameof(DIGraphAttribute)} attribute marked on '{typeInformation.MemberInfo.DeclaringType?.Name}.{typeInformation.MemberInfo.Name}'.");
     }
 
     /// <summary>
