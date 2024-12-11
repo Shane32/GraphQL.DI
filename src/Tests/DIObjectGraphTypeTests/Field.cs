@@ -19,10 +19,12 @@ public class Field : DIObjectGraphTypeTestBase
         public static string? Field1() => "hello";
     }
 
-    [Fact]
-    public void InstanceMethod()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void InstanceMethod(bool registered)
     {
-        Configure<CInstanceMethod, object>(true);
+        Configure<CInstanceMethod, object>(true, registered: registered);
         VerifyField("Field1", nullable: true, concurrent: false, returnValue: "hello");
         Verify(false);
     }
@@ -441,6 +443,31 @@ public class Field : DIObjectGraphTypeTestBase
         [Ignore]
         public static string Field1() => "hello";
         public static string Field2() => "hello";
+    }
+
+    [Fact]
+    public void DisposableRegistered()
+    {
+        Configure<CDisposable, object>(true);
+        VerifyField("FieldTest", true, false, "hello");
+        Verify(false);
+    }
+
+    [Fact]
+    public async Task DisposableUnRegistered()
+    {
+        Configure<CDisposable, object>(true, registered: false);
+        var err = await Should.ThrowAsync<InvalidOperationException>(() => VerifyFieldAsync("FieldTest", true, false, "hello"));
+        err.Message.ShouldBe("Could not resolve an instance of CDisposable from the service provider. DI graph types that implement IDisposable must be registered in the service provider.");
+        Verify(false);
+    }
+
+    public class CDisposable : DIObjectGraphBase, IDisposable
+    {
+        [Name("FieldTest")]
+        public string? Field1() => "hello";
+
+        void IDisposable.Dispose() => GC.SuppressFinalize(this);
     }
 
     [Fact]

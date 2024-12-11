@@ -31,13 +31,17 @@ public class DIObjectGraphTypeTestBase
         _contextMock.SetupGet(x => x.Schema).Returns((ISchema)null!);
     }
 
-    protected IComplexGraphType Configure<T, TSource>(bool instance = false, bool scoped = false) where T : DIObjectGraphBase<TSource>, new()
+    protected IComplexGraphType Configure<T, TSource>(bool instance = false, bool scoped = false, bool registered = true) where T : DIObjectGraphBase<TSource>, new()
     {
         if (instance) {
-            if (scoped) {
-                _scopedServiceProviderMock.Setup(x => x.GetService(typeof(T))).Returns(() => new T()).Verifiable();
+            if (registered) {
+                if (scoped) {
+                    _scopedServiceProviderMock.Setup(x => x.GetService(typeof(T))).Returns(() => new T()).Verifiable();
+                } else {
+                    _serviceProviderMock.Setup(x => x.GetService(typeof(T))).Returns(() => new T()).Verifiable();
+                }
             } else {
-                _serviceProviderMock.Setup(x => x.GetService(typeof(T))).Returns(() => new T()).Verifiable();
+                _serviceProviderMock.Setup(x => x.GetService(typeof(T))).Returns(() => null).Verifiable();
             }
         }
         _graphType = new DIObjectGraphType<T, TSource>();
