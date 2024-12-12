@@ -13,7 +13,6 @@ GraphQL.DI enhances GraphQL.NET's code-first approach by providing dependency in
 The type-first approach in GraphQL.NET automatically infers the GraphQL schema from your C# models:
 
 ```csharp
-// The GraphQL type is automatically inferred from the model
 public class Todo
 {
     public int Id { get; set; }
@@ -21,6 +20,25 @@ public class Todo
     public Person CompletedBy { get; set; }
 }
 ```
+
+It also allows you to write methods in your models if need be for extra capability:
+
+```csharp
+public class Todo
+{
+    public int Id { get; set; }
+    public string Title { get; set; }
+    [Ignore]
+    public int CompletedByPersonId { get; set; }
+    public Person CompletedBy([FromServices] IRepository repository)
+        => repository.GetPersonById(CompletedByPersonId);
+}
+```
+
+While services can be injected in the pattern shown above, there are two issues with this approach:
+
+1. Injection of services is not within the constructor and can be considered an antipattern
+2. Resolver code is mixed together with your data model
 
 ### Code-First Approach
 
@@ -39,14 +57,40 @@ public class TodoType : ObjectGraphType<Todo>
 }
 ```
 
-However in the above sample, the `IRepository` service must be registered as a singleton, which can
-lead to issues with scoped services. GraphQL.DI solves this problem by allowing scoped services to
-be injected directly into the field resolver classes, for better coding patterns and readability.
+This can solve both issues noted above -- the data model is separate from the GraphQL type definition,
+and services can be resolved via dependency injection in the constructor.  However, graph types are
+effectively singletons (typically) within the dependency injection container, so if your services
+(such as `IRepository` above) is a scoped service, then your code will not run properly.
+
+The most common solution is to resolve those scoped services from within the field resolver, which
+again is an antipattern.
+
+```csharp
+public class TodoType : ObjectGraphType<Todo>
+{
+    public TodoType()
+    {
+        Field(x => x.Id);
+        Field(x => x.Title);
+        Field<PersonType>("completedBy")
+            .Resolve(context =>
+            {
+                var repository = context.RequestServices!.GetRequiredService<IRepository>();
+                return repository.GetPersonById(context.Source.CompletedByPersonId));
+            }
+    }
+}
+```
+
+Using the code-first pattern is also less intuitive, but does provide the greatest degree of control
+over the graph type.
 
 ## GraphQL.DI Features
 
-GraphQL.DI provides two patterns for implementing field resolvers with proper dependency injection.
-These patterns can be used alongside traditional GraphQL.NET types, allowing you to gradually adopt the library where it makes sense:
+GraphQL.DI solves all of the problems noted above by allowing scoped services to be injected directly into the
+field resolver classes, while also using a 'type-first' coding pattern for better readability. In addition,
+it can extend the traditional GraphQL.NET code-first approach, allowing you to gradually adopt the library
+where it makes sense.
 
 ### Base Classes
 
@@ -143,6 +187,10 @@ public int Id() => ((Todo)Context.Source).Id;
 
 In either pattern, the `IRepository` service can be registered as a scoped service,
 allowing for proper dependency injection and scoped service usage.
+
+For fields where DI is not necessary, using static methods (such as is shown above) will
+perform faster, as the class does not need to be initialized before the field is resolved.
+The developer can then choose their own desired balance of code readability versus performance.
 
 ## Comparison with ASP.NET Core Controllers
 
