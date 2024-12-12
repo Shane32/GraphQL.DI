@@ -85,6 +85,18 @@ public class TodoType : ObjectGraphType<Todo>
 Using the code-first pattern is also less intuitive, but does provide the greatest degree of control
 over the graph type.
 
+### Comparison of Approaches
+
+| Aspect             | Type-First   | Code-First      | GraphQL.DI |
+|--------------------|--------------|-----------------|------------|
+| Setup Complexity   | Low          | Medium          | Low        |
+| Type Safety        | High         | High            | High       |
+| DI Support         | Limited      | Singletons only | Full       |
+| Code Organization  | Models contain resolvers | Separate type definitions | Separate type definitions |
+| Performance        | Excellent    | Excellent       | Good       |
+| Learning Curve     | Shallow      | Steeper         | Moderate   |
+| Best For           | Models with no resolvers | Performance-critical models | Mutations |
+
 ## GraphQL.DI Features
 
 GraphQL.DI solves all of the problems noted above by allowing scoped services to be injected directly into the
