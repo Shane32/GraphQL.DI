@@ -95,7 +95,7 @@ over the graph type.
 | Code Organization  | Models contain resolvers | Separate type definitions | Separate type definitions |
 | Performance        | Excellent    | Excellent       | Good       |
 | Learning Curve     | Shallow      | Steeper         | Moderate   |
-| Best For           | Models with no resolvers | Performance-critical models | Mutations |
+| Best For           | GraphQL-specific models | Database models | Mutations, root types |
 
 ## GraphQL.DI Features
 
