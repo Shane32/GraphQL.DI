@@ -506,3 +506,4 @@ public class Mutation : DIObjectGraphBase
 - Throw `ExecutionError` to return specific error messages to GraphQL clients
 - Can be used alongside traditional GraphQL.NET types, allowing for gradual adoption
 - All standard GraphQL.NET context properties are available through the `Context` property
+- Does not support GraphQL.NET reflection caching (`GlobalSwitches.EnableReflectionCaching`)
