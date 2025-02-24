@@ -1,3 +1,4 @@
+using System;
 using System.Linq.Expressions;
 using System.Reflection;
 using GraphQL.Types;
@@ -20,6 +21,13 @@ public class DIObjectGraphType<TDIGraph> : DIObjectGraphType<TDIGraph, object> w
 public class DIObjectGraphType<TDIGraph, TSource> : AutoRegisteringObjectGraphType<TSource>
     where TDIGraph : IDIObjectGraphBase<TSource>
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DIObjectGraphType{TDIGraph, TSource}"/> class.
+    /// </summary>
+    public DIObjectGraphType() : base(Array.Empty<Expression<Func<TSource, object?>>>()) // prevent GraphQL.NET 8 reflection caching
+    {
+    }
+
     /// <inheritdoc/>
     protected override void ConfigureGraph()
     {
