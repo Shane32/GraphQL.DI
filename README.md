@@ -4,7 +4,9 @@
 
 ## Overview
 
-GraphQL.DI enhances GraphQL.NET's code-first approach by providing dependency injection support for field resolvers through the `DIObjectGraphBase` class. This enables a more maintainable and testable approach to building GraphQL APIs by allowing services to be injected directly into your field resolver classes.
+GraphQL.DI enhances GraphQL.NET's code-first approach by providing dependency injection support for
+field resolvers through the `DIObjectGraphBase` class. This enables a more maintainable and testable
+approach to building GraphQL APIs by allowing services to be injected directly into your field resolver classes.
 
 ## Getting Started
 
@@ -24,21 +26,43 @@ GraphQL.DI enhances GraphQL.NET's code-first approach by providing dependency in
        .AddExecutionStrategy<SerialExecutionStrategy>(OperationType.Query)
    );
    ```
-3. **Create and use your DI-based resolvers**  
+4. **Create your DI-based graph types**  
    ```csharp
-   public class TodoResolver : DIObjectGraphBase<Todo>
+   public class TodoMutation : DIObjectGraphBase
    {
-       private readonly IRepository _repository;
-       public TodoResolver(IRepository repository) => _repository = repository;
-
-       public async Task<Person?> CompletedBy()
-           => await _repository.GetPersonById(Source.CompletedByPersonId);
+       private readonly IRepository<Todo> _repository;
+   
+       public TodoMutation(IRepository<Todo> repository)
+       {
+           _repository = repository;
+       }
+   
+       public async Task<Todo> AddAsync(string title, string notes)
+       {
+           var todo = new Todo {
+               Title = title,
+               Notes = notes,
+           };
+           return await _repository.AddAsync(todo, RequestAborted);
+       }
+   }
+   ```
+5. **Add the new graph types to your schema**
+   ```csharp
+   public class MutationType : ObjectGraphType
+   {
+       public MutationType()
+       {
+           Field<NonNullGraphType<TodoMutation>>("todo")
+               .Resolve(_ => "");
+       }
    }
    ```
 
-See the [Setup](#setup) section below for more detailed instructions on configuring GraphQL.DI in your project.
+See the [Setup](#setup) section below for more detailed instructions on configuring GraphQL.DI in
+your project, including how to configure root types for use with GraphQL.DI.
 
-## Type-First vs Code-First in GraphQL.NET
+## Background: Type-First vs Code-First in GraphQL.NET
 
 ### Type-First Approach
 
@@ -69,8 +93,8 @@ public class Todo
 
 While services can be injected in the pattern shown above, there are two issues with this approach:
 
-1. Injection of services is not within the constructor and can be considered an antipattern  
-2. Resolver code is mixed together with your data model  
+1. Injection of services is not within the constructor and can be considered an antipattern
+2. Resolver code is mixed together with your data model
 
 ### Code-First Approach
 
