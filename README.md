@@ -37,13 +37,13 @@ approach to building GraphQL APIs by allowing services to be injected directly i
            _repository = repository;
        }
    
-       public async Task<Todo> AddAsync(string title, string notes)
+       public async Task<Todo> AddAsync(string title, string? notes)
        {
            var todo = new Todo {
                Title = title,
                Notes = notes,
            };
-           return await _repository.AddAsync(todo, RequestAborted);
+           return await _repository.InsertAsync(todo, RequestAborted);
        }
    }
    ```
