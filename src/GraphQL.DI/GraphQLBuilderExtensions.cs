@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 
 namespace GraphQL.DI;
 
@@ -22,6 +23,7 @@ public static class GraphQLBuilderExtensions
     /// Scans the calling assembly for classes that implement <see cref="IDIObjectGraphBase{TSource}"/>
     /// and registers them as transients within the DI container.
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)] // inlining would change result of GetCallingAssembly
     public static IGraphQLBuilder AddDIGraphBases(this IGraphQLBuilder builder)
         => AddDIGraphBases(builder, Assembly.GetCallingAssembly());
 
@@ -46,6 +48,7 @@ public static class GraphQLBuilderExtensions
     /// the <see cref="DoNotMapClrTypeAttribute"/>, or where another graph type would be automatically mapped
     /// to the specified type, or where a graph type has already been registered to the specified clr type.
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)] // inlining would change result of GetCallingAssembly
     public static IGraphQLBuilder AddDIClrTypeMappings(this IGraphQLBuilder builder)
         => AddDIClrTypeMappings(builder, Assembly.GetCallingAssembly());
 

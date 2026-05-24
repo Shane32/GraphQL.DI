@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using GraphQL.DI;
 
 namespace GraphQL;
@@ -29,6 +30,7 @@ public static class GraphQLDIBuilderExtensions
     /// </item>
     /// </list>
     /// </summary>
+    [MethodImpl(MethodImplOptions.NoInlining)] // inlining would change result of GetCallingAssembly
     public static IGraphQLBuilder AddDI(this IGraphQLBuilder builder)
         => AddDI(builder, Assembly.GetCallingAssembly());
 
